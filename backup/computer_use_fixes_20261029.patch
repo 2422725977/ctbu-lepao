@@ -1,0 +1,144 @@
+diff --git a/tools/computer_use/cua_backend.py b/tools/computer_use/cua_backend.py
+index ec903cbf7f..e04ffc03db 100644
+--- a/tools/computer_use/cua_backend.py
++++ b/tools/computer_use/cua_backend.py
+@@ -358,11 +358,18 @@ class CuaDriverBackend(_CaptureMixin, _InputMixin, ComputerUseBackend):
+         # re-resolving to a different element. Cleared whenever a fresh capture overwrites the snapshot
+         # context.
+         self._snapshot_tokens: dict[int, str] = {}
++        # The snapshot_id that owns `_snapshot_tokens`. cua-driver 0.21+ accepts `element_index` + `snapshot_id`
++        # as an alternative to `element_token`, which is the only way to address AX nodes that carry NO token
++        # (text/static nodes on CEF/WKWebView surfaces — e.g. a WeCom mini-program button rendered as
++        # AXStaticText). Without it those clicks are refused with `snapshot_id_required` and look like
++        # "computer_use can't click this app".
++        self._snapshot_id: Optional[str] = None
+ 
+     def _set_active_target(self, target: dict[str, Any]) -> None:
+         self._active_pid = target["pid"]
+         self._active_window_id = target["window_id"]
+         self._snapshot_tokens = {}  # prior snapshot's tokens: disarm before any capture so an exception can't pair them
++        self._snapshot_id = None
+         self._last_target = {"pid": self._active_pid, "window_id": self._active_window_id}
+ 
+     def launch_app(self, *, bundle_id: Optional[str] = None, name: Optional[str] = None,
+@@ -382,8 +389,12 @@ class CuaDriverBackend(_CaptureMixin, _InputMixin, ComputerUseBackend):
+     def bring_to_front(self, *, pid: int, window_id: Optional[int] = None) -> ActionResult:
+         """Activate a window so subsequent foreground-dispatched input lands on it."""
+         args: dict[str, Any] = {"pid": int(pid), **({} if window_id is None else {"window_id": int(window_id)})}
+-        # Strict live schema with no session property: a standalone native focus op, not a session-scoped input action.
+-        return self._action("bring_to_front", args, inject_session=False)
++        # NOTE: `session` is injected on purpose. The driver's schema omits it (additionalProperties:false) yet
++        # accepts it on every tool, and WITHOUT it this call rides the bridge's default session — which, once
++        # that bridge's session has ended, is rejected outright with
++        # "session 'mcp-<pid>…' has ended; call start_session … to revive it" and NO revive is possible
++        # because the wrapper has no declared id to re-declare. That is the "focus_app randomly dies" symptom.
++        return self._action("bring_to_front", args, inject_session=True)
+ 
+     def set_agent_cursor_enabled(self, enabled: bool, *, cursor_id: Optional[str] = None) -> ActionResult:
+         """Toggle the agent cursor overlay's visibility for this run."""
+@@ -413,6 +424,19 @@ class CuaDriverBackend(_CaptureMixin, _InputMixin, ComputerUseBackend):
+         if token and (self._session.supports_input_property(name, "element_token")
+                       or self._session.supports_capability("accessibility.element_tokens", tool=name)):
+             args["element_token"] = token
++            # cua-driver 0.38+ dropped `element_index` from the input schema (token IS the handle). Sending both
++            # makes the driver reject the whole call as "unknown argument element_index" — while the token it
++            # also received would have worked. Drop the index once the token carries it.
++            if "element_index" in args and not self._session.supports_input_property(name, "element_index"):
++                args.pop("element_index", None)
++        elif isinstance(idx, int) and self._session.supports_input_property(name, "snapshot_id"):
++            # Tokenless element (AXStaticText / CEF-WKWebView surfaces): cua-driver 0.21+ still accepts
++            # `element_index` when its owning `snapshot_id` rides along. Sending a BARE index is what the
++            # driver refuses with `snapshot_id_required` — the failure that reads as "this app can't be
++            # clicked" on WeCom mini programs and other canvas-ish surfaces.
++            snap = getattr(self, "_snapshot_id", None)
++            if isinstance(snap, str) and snap:
++                args["snapshot_id"] = snap
+         if inject_session:  # setdefault preserves any explicit session a caller already supplied
+             args.setdefault("session", self._session_id)
+         try:
+diff --git a/tools/computer_use/cua_backend_capture.py b/tools/computer_use/cua_backend_capture.py
+index 0e93f1c5b4..d560284060 100644
+--- a/tools/computer_use/cua_backend_capture.py
++++ b/tools/computer_use/cua_backend_capture.py
+@@ -252,6 +252,13 @@ class _CaptureMixin:
+         """
+         args: dict[str, Any] = {"pid": self._active_pid, "window_id": self._active_window_id,
+                                 "session": self._session_id}
++        # cua-driver 0.38 flipped the DEFAULT tree representation to compact markdown and moved the structured
++        # `elements` array (element_index/element_token/frame) behind `tree_format`. Ask for it explicitly when
++        # the driver advertises the knob — without this, a 0.38 driver returns only `tree_markdown`, the parse
++        # falls back to the markdown regex (frames all 0,0,0,0), and every element click degrades to a bare
++        # index the driver refuses. 0.21/0.20 have no such property, so it stays a no-op there.
++        if self._session.supports_input_property("get_window_state", "tree_format"):
++            args["tree_format"] = "elements"
+         from tools.computer_use import cua_backend as _cb  # lazy: cua_backend imports this module at import time
+         if capped := _cb._cua_configured_ax_max_elements():
+             args["max_elements"] = capped
+@@ -300,6 +307,14 @@ class _CaptureMixin:
+                     else _parse_elements_from_tree(tree) if tree else [])
+         # Tokens are tied to this snapshot: overwrite the whole map (and clear it when the new capture carries none).
+         self._snapshot_tokens = {e.index: e.element_token for e in elements if e.element_token}
++        # Remember which snapshot those indices belong to so a tokenless node can still be addressed as
++        # (element_index, snapshot_id) — cua-driver's documented second addressing mode.
++        _snap = gws_out.get("snapshot_id")
++        if not isinstance(_snap, str) or not _snap:
++            _sc = gws_out.get("structuredContent") or {}
++            _snap = _sc.get("snapshot_id") if isinstance(_sc, dict) else None
++        if isinstance(_snap, str) and _snap:
++            self._snapshot_id = _snap
+         return *_image_from_tool_result(gws_out), elements, window_title
+ 
+     def capture(self, mode: str = "som", app: Optional[str] = None, pid: Optional[int] = None,
+diff --git a/tools/computer_use/cua_backend_session.py b/tools/computer_use/cua_backend_session.py
+index 6efa4aae05..32ecbd2c02 100644
+--- a/tools/computer_use/cua_backend_session.py
++++ b/tools/computer_use/cua_backend_session.py
+@@ -12,6 +12,7 @@ import json
+ import logging
+ import os
+ import threading
++import uuid
+ from typing import Any, Dict, List, Optional
+ 
+ from hermes_cli._subprocess_compat import windows_hide_flags
+@@ -388,9 +389,18 @@ class _CuaDriverSession:
+     def _is_closed_session_error(exc: Exception) -> bool:
+         """True for MCP/stdio failures that are recoverable by reconnecting."""
+         name, module = exc.__class__.__name__, getattr(exc.__class__, "__module__", "")
+-        return (name in {"ClosedResourceError", "BrokenResourceError", "EndOfStream"}
++        if (name in {"ClosedResourceError", "BrokenResourceError", "EndOfStream"}
+                 or (module.startswith("anyio") and "Resource" in name)
+-                or isinstance(exc, (BrokenPipeError, EOFError)))
++                or isinstance(exc, (BrokenPipeError, EOFError))):
++            return True
++        # The mcp SDK surfaces a dead stdio bridge as McpError/MCPError(CONNECTION_CLOSED, "Connection closed").
++        # Without this branch the wrapper re-raised it verbatim and the session stayed wedged for the rest of
++        # the process ("capture failed: Connection closed" in ~0.01s, forever) — the single worst failure mode
++        # of this toolset, and one that only a full app restart used to clear.
++        msg = str(exc).lower()
++        if module.startswith("mcp") and ("connection closed" in msg or "closed resource" in msg):
++            return True
++        return "connection closed" in msg and getattr(exc, "code", None) == -32000
+ 
+     @staticmethod
+     def _is_transient_daemon_error(exc: Exception) -> bool:
+@@ -512,7 +522,18 @@ class _CuaDriverSession:
+             # Revive the stable session and replay the rejected call once; a 2nd rejection surfaces as-is.
+             # Never re-runs lifecycle calls -> an end_session result is final.
+             session_id = self._declared_session_id
+-            if session_id and name not in self._LIFECYCLE_CALLS:
++            if not session_id and name not in self._LIFECYCLE_CALLS:
++                # No label was ever declared (the driver was riding its own "mcp-<pid>" default, which just
++                # ended). Mint one, declare it, and replay — otherwise the raw "session … has ended; call
++                # start_session" text leaks to the model and every following call fails the same way.
++                session_id = f"hermes-{uuid.uuid4().hex[:12]}"
++                self._declared_session_id = session_id
++                args.setdefault("session", session_id)
++                logger.warning("cua-driver session had ended during %s; declaring %s and retrying once",
++                               name, session_id)
++                if self._redeclare_session(timeout, "cua-driver session %s could not be declared: %s"):
++                    result = self._bridge.run(self._call_tool_async(name, args), timeout=timeout)
++            elif session_id and name not in self._LIFECYCLE_CALLS:
+                 logger.warning("cua-driver session %s ended during %s; reviving and retrying once", session_id, name)
+                 if self._redeclare_session(timeout, "cua-driver session %s could not be revived: %s"):
+                     result = self._bridge.run(self._call_tool_async(name, args), timeout=timeout)

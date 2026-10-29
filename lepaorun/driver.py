@@ -66,8 +66,11 @@ def gen_with_retry(cps, rnd, attempts=8, canary=False):
             checks.pop("checkpoints(>=4)", None)   # vena4 模式下打卡点数单独校验
         failed = {k2: v for k2, v in checks.items() if not v[0]}
         want_cp = 4 if VENA4 else 12
-        if len(res["crossings"]) != want_cp:
-            failed["checkpoints"] = (f"{len(res['crossings'])}/{want_cp}",)
+        cp_n = len(res["crossings"])
+        if VENA4 and cp_n < want_cp:
+            failed["checkpoints"] = (f"{cp_n}<{want_cp}",)
+        elif not VENA4 and cp_n != want_cp:
+            failed["checkpoints"] = (f"{cp_n}/{want_cp}",)
         log(f"  [gen.{k}] target={target:.0f}m {dist}km {used}s pace={int(pace)}s/km pts={res['path_pts']} "
             f"steps={res['step_num']} | {'PASS' if not failed else 'FAIL ' + json.dumps({k2: v[1] for k2, v in failed.items()}, ensure_ascii=False)}")
         if ok_dist and ok_pace and ok_time and not failed:

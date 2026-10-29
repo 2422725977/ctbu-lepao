@@ -1,0 +1,10 @@
+{
+ "date": "2026-10-29",
+ "done": true,
+ "dead_notified": false,
+ "targets": {
+  "noon": "13:05"
+ },
+ "last_run": "2026-10-29 12:26",
+ "last_exit": 0
+}
