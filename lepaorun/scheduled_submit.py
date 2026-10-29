@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-"""等到 05:20:00 后执行正式提交；先验 token，死亡则不提交。"""
-import datetime, subprocess, json, sys
+"""等到 07:10 执行正式提交；先验 token，死亡则不提交。"""
+import datetime, subprocess, json, sys, time
 
-target = datetime.datetime.combine(datetime.date.today(), datetime.time(7, 30, 0))
+target = datetime.datetime.combine(datetime.date.today(), datetime.time(7, 10, 0))
 now = datetime.datetime.now()
 wait = (target - now).total_seconds()
-print(f"[schedule] now={now:%H:%M:%S} wait={wait:.0f}s -> 07:30:00", flush=True)
+print(f"[schedule] now={now:%H:%M:%S} wait={wait:.0f}s -> 07:10:00", flush=True)
 if wait > 0:
-    import time
     time.sleep(wait)
 
-# 提交前 token 活性预检（无副作用）
 sys.path.insert(0, "/tmp/lepaorun")
 import os
 os.chdir("/tmp/lepaorun")

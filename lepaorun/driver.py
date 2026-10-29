@@ -43,6 +43,9 @@ def log(msg):
     print(msg, flush=True)
 
 
+VENA4 = False   # True=只打随机 4 个打卡点（模拟真实分配）
+
+
 def gen_with_retry(cps, rnd, attempts=8, canary=False):
     """生成直到通过全部自检和学校窗口。canary=True 时用最小爆炸半径参数"""
     for k in range(attempts):
@@ -50,7 +53,7 @@ def gen_with_retry(cps, rnd, attempts=8, canary=False):
             target = rnd.uniform(2.62, 2.72) * 1000     # 金丝雀: 校规最低 2.5+缓冲
         else:
             target = rnd.uniform(2.75, 4.70) * 1000
-        res = CT.generate_run(cps, target, rnd)
+        res = CT.generate_run(cps, target, rnd, vena4=VENA4)
         res["_target"] = target
         dist = res["distance_km"]
         used = res["used_time"]
@@ -59,7 +62,12 @@ def gen_with_retry(cps, rnd, attempts=8, canary=False):
         ok_pace = (300 if canary else PACE_LO) <= pace <= (460 if canary else PACE_HI)
         ok_time = used <= 3300 if dist <= 3.0 else used <= 6900
         checks = CT.self_check(res)
+        if VENA4:
+            checks.pop("checkpoints(>=4)", None)   # vena4 模式下打卡点数单独校验
         failed = {k2: v for k2, v in checks.items() if not v[0]}
+        want_cp = 4 if VENA4 else 12
+        if len(res["crossings"]) != want_cp:
+            failed["checkpoints"] = (f"{len(res['crossings'])}/{want_cp}",)
         log(f"  [gen.{k}] target={target:.0f}m {dist}km {used}s pace={int(pace)}s/km pts={res['path_pts']} "
             f"steps={res['step_num']} | {'PASS' if not failed else 'FAIL ' + json.dumps({k2: v[1] for k2, v in failed.items()}, ensure_ascii=False)}")
         if ok_dist and ok_pace and ok_time and not failed:
@@ -219,6 +227,8 @@ def run(submit=False, canary=False):
 if __name__ == "__main__":
     submit = "--submit" in sys.argv
     canary = "--canary" in sys.argv
+    if "--vena4" in sys.argv or CFG.get("checkpoint_mode") == "vena4":
+        VENA4 = True
     if canary:
         # 金丝雀模式: 距离/配速压到最保守
         PACE_LO, PACE_HI = 300, 460
