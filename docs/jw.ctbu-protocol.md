@@ -70,3 +70,11 @@ CAS 跳转 + 「该帐号不存在或密码错误,请联系管理员!」错误�
 
 ### 强智 gnmkdm 功能码体系（已确认）
 `xskb_list.do?gnmkdm=N2151` = 我的课表。各功能页都有对应 gnmkdm，POST 查询时随表单提交。
+
+## 端点穷尽结论（2026-10-30）
+学生端可见菜单=按学号分配的 8 项（外壳页+内嵌页+菜单 JS 三处交叉验证一致），无隐藏功能项。
+框架层完整端点图：
+- 外壳三变体：xsMain.jsp / xsMain_new.jsp?t1=1 / xsMain_old.jsp
+- 异步加载：main_index_loadkb.jsp（课表）、main_index_loadtzgg.jsp（通知公告）、main_index_loadxyxxgg.jsp + xyxxgg.jsp?id= / xyxxgg2.jsp?id=（学院公告）
+- 业务：/jsxsd/view/xssf/xsjf_message.jsp（缴费消息）、/jsxsd/portal/queryDetails.do（门户详情）、/jsxsd/xspj/getXshxToken.do（评教 token）
+- 功能页 8 项见上文功能树
