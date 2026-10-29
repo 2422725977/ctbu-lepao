@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # 本机自用驱动：基于 lepao3 (LRL-1.0) 研究代码 + CTBU 定制轨迹生成器，仅操作本人账号，不牟利。
-import sys, json, time, random, datetime
-sys.path.insert(0, "/tmp/lepaorun")
+import sys, os, json, time, random, datetime
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
 from lepao.v3api import V3Client, V3Error
 from lepao import record as REC
 from lepao import ctbu_track as CT
 from lepao.crypto import encrypt_data
 
-CFG = json.load(open("/tmp/lepaorun/config.json"))
+CFG = json.load(open(os.path.join(_HERE, "config.json"), encoding="utf-8"))
 AK = "2025410030"
 acc = CFG["accounts"][AK]
 TOKEN = acc["auth"]["token"]
