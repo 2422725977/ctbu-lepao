@@ -61,3 +61,12 @@ CAS 跳转 + 「该帐号不存在或密码错误,请联系管理员!」错误�
 ### 会话特征
 - Cookie：`jw=real_jwc_jw<N>`（LB 节点，会出现重复 Cookie）+ JSESSIONID（HttpOnly）
 - 节点轮换会导致 fetch 与页面导航落在不同节点 → 会话"丢失"假象
+
+### 各功能页参数结构（会话内逐页抓取）
+- **考试安排** `/jsxsd/xsks/xsksap_query`：`xnxqid`（学年学期 select）+ `xqlb`（1 期初/2 期中/3 期末）+ 隐藏 `sxxnxq/dqxnxq/ckbz`；特殊流程锁：**须先"查看考试须知"才允许查询**
+- **选课中心** `/jsxsd/xsxk/xklc_list`：轮次列表页；无开放轮次时"未查询到数据"（选课开放时在此出现轮次入口）
+- **培养方案** `/jsxsd/pyfa/topyfamx`：全文渲染（2025 级统计学 128 行课程计划）
+- **评教 token** `/jsxsd/xspj/getXshxToken.do`：GET 返回 HTML 页（token 内嵌页面流程，非裸 JSON）
+
+### 强智 gnmkdm 功能码体系（已确认）
+`xskb_list.do?gnmkdm=N2151` = 我的课表。各功能页都有对应 gnmkdm，POST 查询时随表单提交。
