@@ -74,3 +74,34 @@
 - 其余敏感路径（/actuator、/env、/druid、/.env、/.git/HEAD）均 404 ✓
 
 **partToken 风险评估（供安全部门）**：token 未绑定目标应用（无 aud）。若各子系统共享同一 HS256 密钥校验（正方框架常见部署），则 A 应用的 partToken 可能在 B 应用同样有效（跨应用横向）。需安全部门核实子系统校验逻辑是否校验 aud/签发者。10 分钟 TTL 限制了窗口。
+
+## 重大疑似注入面：自定义报表引擎（静态架构发现，2026-10-31）
+
+前端 bundle 中发现完整的**存储型自定义报表引擎**端点族（xqyzdy/kpzdy 两套）：
+
+```
+写：/api/kpzdy/custom/saveSql          ← 保存 SQL 语句到服务端
+写：/api/kpzdy/custom/saveparamin      ← 保存入参定义
+写：/api/kpzdy/custom/saveparamout     ← 保存出参定义
+读：/api/kpzdy/custom/getSql           ← 读取已保存的 SQL
+读：/api/xqyzdy/custom/getSqLparamout  ← 按 SQL+参数执行并返回结果
+读：/api/xqyzdy/custom/pageListByParam ← 按参数分页查询
+读：/api/xqyzdy/custom/tjListByParam   ← 按参数统计
+读：/api/xqyzdy/custom/exportListByParam ← 按参数导出（blob 下载）
+```
+
+**架构风险**（静态判断，需安全部门验证）：
+1. 若 `saveSql` 未严格校验 SQL 内容/白名单 → 存储型 SQL 注入（保存即注入）
+2. 若 `saveSql` 对低权限用户可达 → 任意 SQL 执行
+3. 若参数替换采用字符串拼接而非预编译 → 经典注入
+4. `getSql` 向客户端返回 SQL 明文 → **数据库表结构完整泄露**
+5. `exportListByParam` 可导出任意报表数据 → 批量数据泄露面
+
+**实测状态**：学生会话无参调用均 500/405（端点存在、需参数）；saveSql 是否对学生开放未测试（写操作，留待安全部门）。
+
+**建议安全部门验证清单**：
+1. saveSql 的权限控制（哪些角色可保存 SQL）
+2. 保存的 SQL 是否有白名单/审计
+3. param 替换是否预编译
+4. getSql 是否会向前端返回 SQL 明文
+5. 自定义报表的数据范围是否隔离（能否跨院系查数据）
