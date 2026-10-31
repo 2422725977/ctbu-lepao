@@ -64,3 +64,13 @@
 | /api/xysst/getQx | 200，返回本人权限码 qxcode=1 | 本人数据，正常 |
 
 **结论**：驾驶舱核心数据对学生正确拒绝；但 **getAdmins 泄露管理账号用户名** + **登录统计接口泄露平台运营指标**，降级为低危（信息泄露，非越权）。
+
+## partToken 免登链路验证（2026-10-31 深夜，#4 复现）
+- 端点：POST /api/commonInfo/user/partToken（会话内调用）
+- **实测：任意参数形态均返回同一结构 JWT**（{url:…}/{id:…}/{appid:…}/{ywxturl:…}/{mc:…} 全部 200）
+- JWT 解码：HS256，payload 仅 `{userName:"夏鑫", userId:"2025410030", exp}` — **无 audience/应用绑定字段**
+- TTL = 600 秒（10 分钟）
+- 敏感路径排查：/swagger-ui.html、/v2/api-docs、/doc.html、/api/swagger-ui.html 均 200 但被权限页拦截（"You do not have permission"）——文档端点部署在生产但已加访问控制
+- 其余敏感路径（/actuator、/env、/druid、/.env、/.git/HEAD）均 404 ✓
+
+**partToken 风险评估（供安全部门）**：token 未绑定目标应用（无 aud）。若各子系统共享同一 HS256 密钥校验（正方框架常见部署），则 A 应用的 partToken 可能在 B 应用同样有效（跨应用横向）。需安全部门核实子系统校验逻辑是否校验 aud/签发者。10 分钟 TTL 限制了窗口。
