@@ -4,3 +4,5 @@ venv/
 *.mitm
 .DS_Store
 submit_result.log
+state/
+logs/
