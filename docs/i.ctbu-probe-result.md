@@ -40,3 +40,27 @@
 
 ## 405（仅 POST）代表
 /api/commonInfo/user/partToken（子系统免登 token）、/api/cycl/getDhljcl、/api/kpbj/* 布局保存系列、/api/meeting/getRemindRclxs、/api/opinion/feedback
+
+## 复现验证（2026-10-31 晚，针对报告 #3 与 #5）
+
+### #3 组织/人员枚举 —— ❌ 未能复现（学生账号被正确拦截）
+| 端点 | 学生会话实测 |
+|---|---|
+| /api/user/selector/organ/tree | 200 但 data 仅 2 字节（**空树**） |
+| /api/allroles | 200，返回本人 7 个身份（非全校角色表） |
+| /api/meeting/searchUser?name=王 | 200 但 0 结果 |
+| /api/meeting/getAttendeeBmdm | 500（缺参数/拒绝） |
+| /api/meeting/getAllUserListBySsbm | 需部门码（组织树为空拿不到） |
+
+**结论**：组织/人员数据对学生会话返回空，#3 降级为"低危/不成立"——门户对人员枚举的防护是有效的。
+
+### #5 驾驶舱/管理接口 —— ⚠️ 部分复现（弱）
+| 端点 | 学生会话实测 | 结论 |
+|---|---|---|
+| /api/zjjs/bsdt/leader | 500 | 拒绝（需参数/权限） |
+| /api/zjjs/bsdt/leadermenu、im/userinfo、getUserAsset | 200 空数据 | 无泄露 |
+| /api/xysst/getAdmins | **200，返回 1 条管理员账号记录**（XM/YHM 字段，用户名 adm 前缀） | ⚠️ **管理端用户名泄露**（可用于定向口令喷洒） |
+| /api/newZfRz/loggedStatistical | **200，全平台登录统计**（平均日活 5084、峰值 8601544、运行 1692 天、当日登录 1330） | ⚠️ 运营指标泄露（非个人数据） |
+| /api/xysst/getQx | 200，返回本人权限码 qxcode=1 | 本人数据，正常 |
+
+**结论**：驾驶舱核心数据对学生正确拒绝；但 **getAdmins 泄露管理账号用户名** + **登录统计接口泄露平台运营指标**，降级为低危（信息泄露，非越权）。
