@@ -88,6 +88,18 @@ def plan_route(cps, rnd):
     return order[k:] + order[:k]
 
 
+def plan_route_vena(cps, rnd, n=4):
+    """模拟真实分配机制: 从全部打卡点中均匀随机抽 n 个（C(12,4)=495 组合全覆盖,
+    允许相邻点——真实分配就是任意 4 个）。按环线顺序连弦（不自交）。
+    相邻弦可能顺路经过其他打卡点 → 那些也自然打卡（真人也会顺路经过，log_data ≥n）。"""
+    order = list(cps)
+    chosen = rnd.sample(order, min(n, len(order)))
+    # 按环线位置排序, 保证连弦不自交
+    idx = {c[2]: i for i, c in enumerate(order)}
+    chosen.sort(key=lambda c: idx[c[2]])
+    return chosen
+
+
 def build_path(order, rnd, laps, perim):
     """把打卡点环线铺成 laps 圈的密集路径(每圈独立抖动, 防止轨迹重叠)。
     圈数须满足 laps*perim > 目标距离, 否则 route_at 会钳制导致原地踏步。"""
@@ -176,12 +188,15 @@ def walk_speed_at(t, walks):
 
 
 # ---------------------------------------------------------------- 主生成器
-def generate_run(cps, target_m, rnd=None):
+def generate_run(cps, target_m, rnd=None, vena4=False):
     """生成一次完整跑步的全部数据。
-    cps: [(lat, lng, point_id)]  返回 dict(track, log_data, step_info, step_num,
-         used_time, distance_km, gyr, crossings, start_idx)"""
+    cps: [(lat, lng, point_id)]  vena4=True 时只访问随机抽取的 4 个打卡点。
+    返回 dict(track, log_data, step_info, step_num, used_time, distance_km, gyr, crossings)"""
     rnd = rnd or random.Random()
-    order = plan_route(cps, rnd)
+    if vena4:
+        order = plan_route_vena(cps, rnd, 4)
+    else:
+        order = plan_route(cps, rnd)
     # 先估单圈周长, 按目标距离铺足够的圈数(路径必须长于目标, 否则钳制原地踏步)
     perim = sum(haversine_m(order[i][0], order[i][1],
                             order[(i + 1) % len(order)][0], order[(i + 1) % len(order)][1])
@@ -210,13 +225,13 @@ def generate_run(cps, target_m, rnd=None):
             v = v * 0.25 + w * 0.75
         # 覆盖检查提前: 未全覆盖时不做终点减速(跑者不知道目标, 继续正常跑)
         covered_now = all(any(haversine_m(q["a"], q["o"], c[0], c[1]) <= CHECKIN_RADIUS_M
-                              for q in track) for c in cps) if track else False
+                              for q in track) for c in order) if track else False
         remaining = target_m - s
         if remaining < 120 and covered_now:          # 终点线性减速(时间上自然)
             v *= max(0.30, 0.30 + 0.70 * remaining / 120.0)
         # 打卡点附近轻减速(非复利, 只刹高速, 避免起步段越走越慢)
         la, lo_ = route_at(path, cum, s)
-        dmin = min(haversine_m(la, lo_, c[0], c[1]) for c in cps)
+        dmin = min(haversine_m(la, lo_, c[0], c[1]) for c in order)
         if dmin < 15 and v > 2.2:
             v *= rnd.uniform(0.70, 0.90)
         v = max(0.02, min(v, 5.6))
@@ -264,7 +279,7 @@ def generate_run(cps, target_m, rnd=None):
         steps_per_point.append(sps * (DT + rnd.uniform(-0.02, 0.02)) *
                                (0.9 + 0.2 * rnd.random()))
 
-        for cp in cps:
+        for cp in order:
             if haversine_m(pt["a"], pt["o"], cp[0], cp[1]) < 14 and rnd.random() < 0.35:
                 v *= rnd.uniform(0.75, 0.9)
                 break
@@ -272,7 +287,7 @@ def generate_run(cps, target_m, rnd=None):
         t += DT
         i += 1
         covered = all(any(haversine_m(q["a"], q["o"], c[0], c[1]) <= CHECKIN_RADIUS_M
-                          for q in track) for c in cps)
+                          for q in track) for c in order)
         if s >= target_m and covered:
             break
         if i > 1100:
@@ -310,16 +325,15 @@ def generate_run(cps, target_m, rnd=None):
         cum_d.append(cum_d[-1] + haversine_m(a["a"], a["o"], b_["a"], b_["o"]))
     scale = used / max(1e-6, len(track) * DT)
     entries = []
-    for cp in cps:
+    for cp in order:
         la, lo, pid = cp
         idx = None
         for k in range(len(track)):
             if haversine_m(track[k]["a"], track[k]["o"], la, lo) <= CHECKIN_RADIUS_M:
                 idx = k
                 break
-        if idx is None:
-            idx = min(range(len(track)),
-                      key=lambda k: haversine_m(track[k]["a"], track[k]["o"], la, lo))
+        if idx is None:                  # 未经过的点不打卡（真实语义，vena4 关键）
+            continue
         t_off = max(0.0, min(float(used), idx * DT * scale + rnd.uniform(-3.0, 3.0)))
         d_km = cum_d[idx] / 1000.0
         entries.append({
@@ -408,8 +422,8 @@ def self_check(res):
         "autocorr1(>=0.3)": (abs(ac(1)) >= 0.3, f"{ac(1):.3f}"),
         "step_ratio(0.4~2.5)": (0.4 <= ratio <= 2.5,
                                 f"{ratio:.2f} (steps={res['step_num']})"),
-        "checkpoints(=12)": (len(res["crossings"]) == 12,
-                             f"{len(res['crossings'])}/12"),
+        "checkpoints(>=4)": (len(res["crossings"]) >= 4,
+                             f"{len(res['crossings'])} 个打卡点"),
         "zone(100% in)": (all(point_in_zone(p["a"], p["o"], 0) for p in track),
                           "all points inside school zone polygon"),
         "points": (True, f"{len(track)} pts, {dist_km}km, {res['used_time']}s, "
