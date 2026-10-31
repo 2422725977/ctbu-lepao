@@ -105,3 +105,35 @@
 3. param 替换是否预编译
 4. getSql 是否会向前端返回 SQL 明文
 5. 自定义报表的数据范围是否隔离（能否跨院系查数据）
+
+## 安全响应头/方法/参数抽样（2026-11-01）
+
+### 安全响应头审计
+| 头 | 门户 | API | 评估 |
+|---|---|---|---|
+| Content-Security-Policy | **缺失** | **缺失** | ⚠️ 无 CSP → XSS 一旦存在即可利用，建议添加 |
+| Strict-Transport-Security | **缺失** | **缺失** | ⚠️ 无 HSTS → 可被 SSL 剥离降级 |
+| X-Frame-Options | SAMEORIGIN ✓ | SAMEORIGIN ✓ | 正确 |
+| X-Content-Type-Options | **缺失** | **缺失** | ⚠️ 建议添加 nosniff |
+| Referrer-Policy | **缺失** | **缺失** | 建议添加 |
+| Server | nginx | nginx | 信息暴露（可移除版本） |
+| X-Powered-By | 无 | 无 | ✓ |
+
+### OPTIONS 方法审计
+/basic/info → 405（无 Allow 头）；/security/token → 405。✓ 方法收敛正常。
+
+### 参数化接口抽样（用 bundle 提取的正确参数）
+| 接口 | 结果 |
+|---|---|
+| /api/zjjs/jxzx/rchx（人成绩混合） | **200 error_code=0，返回本人数据（40B）** |
+| /api/zjjs/getUserAsset | 200，返回空 |
+| /api/meeting/getAttendeeList | 500 需参数 |
+
+→ 教务管理通(jwgzt)代理端点在正确参数下**确实返回本人真实数据**——接口可用性已验证，数据范围为本人（正常行为）。
+
+### 低危新增：CSP/HSTS/XCTO 缺失
+建议网关统一添加：
+- Content-Security-Policy: default-src 'self'; …
+- Strict-Transport-Security: max-age=31536000; includeSubDomains
+- X-Content-Type-Options: nosniff
+- Referrer-Policy: strict-origin-when-cross-origin
