@@ -1,0 +1,41 @@
+{
+ "version": 2,
+ "active": "2025410030",
+ "accounts": {
+  "2025410030": {
+   "uid": 1031432,
+   "school_id": 201,
+   "student_num": "2025410030",
+   "card_id": "2025410030",
+   "name": "夏鑫",
+   "alias": "xiaxin",
+   "enabled": true,
+   "policy": {
+    "max_per_day": 1,
+    "style": "math",
+    "pace_lo": 270,
+    "pace_hi": 470,
+    "dist_lo": 2.6,
+    "dist_hi": 4.9
+   },
+   "auth": {
+    "token": "33BDFC26C9BE90825EB470C718A64437",
+    "issued_at": "2026-10-29T12:53:14",
+    "source": "mitm-capture-mac-relogin"
+   }
+  }
+ },
+ "environment": {
+  "api_host": "lepao.ctbu.edu.cn",
+  "api_proxy": null
+ },
+ "policy": {
+  "max_per_day": 1,
+  "style": "math",
+  "pace_lo": 270,
+  "pace_hi": 470,
+  "dist_lo": 2.6,
+  "dist_hi": 4.9
+ },
+ "runtime": {}
+}

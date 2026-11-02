@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  lepao:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: ctbu-lepao
+    restart: unless-stopped
+    volumes:
+      - ./data/config.json:/app/lepaorun/config.json:ro
+      - ./data/state:/app/data/state
+      - ./data/logs:/app/data/logs
+    environment:
+      - TZ=Asia/Shanghai
