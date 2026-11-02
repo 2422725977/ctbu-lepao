@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-# 本机自用驱动：基于 lepao3 (LRL-1.0) 研究代码 + CTBU 定制轨迹生成器，仅操作本人账号，不牟利。
+# 乐跑驱动引擎（多账号版）：基于 lepao3 (LRL-1.0) + CTBU v3 轨迹生成器。
+# 用法:
+#   CLI:  python driver.py --submit [--canary] [--vena4]
+#   API:  from driver import submit_account; submit_account(account_dict)
 import sys, os, json, time, random, datetime
 _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
@@ -8,87 +11,105 @@ from lepao import record as REC
 from lepao import ctbu_track as CT
 from lepao.crypto import encrypt_data
 
-CFG = json.load(open(os.path.join(_HERE, "config.json"), encoding="utf-8"))
-AK = "2025410030"
-acc = CFG["accounts"][AK]
-TOKEN = acc["auth"]["token"]
+# ---------- 可调参数（默认值，可被账号级覆盖） ----------
+DEFAULTS = {
+    "dist_lo": 2.60, "dist_hi": 4.90,
+    "pace_lo": 200, "pace_hi": 500,
+    "mobile_model": "iPhone14,3",
+    "vena4": False,
+}
 
-# 学校规则窗口 (用户确认): 距离 2.50~10km 取 2.6~4.9, 配速 3'0"~9'0" = 180~540 s/km
-DIST_LO, DIST_HI = 2.60, 4.90
-PACE_LO, PACE_HI = 200, 500          # 实际生成 4'~8'20"/km, 留边
-MOBILE_MODEL = "iPhone14,3"
-
-
-class StateShim:
-    def save_dryrun(self, *a, **k): pass
-    def save_submission(self, *a, **k): pass
+CFG_PATH = os.path.join(_HERE, "config.json")
 
 
-class AuthShim:
-    config = CFG
-    label = acc["alias"]
-    uid = acc["uid"]
-    school_id = acc["school_id"]
-    student_num = acc["student_num"]
-    card_id = acc["card_id"]
-    def make_client(self, pace=0.0):
-        return V3Client(uid=self.uid, token=TOKEN, school_id=self.school_id,
-                        student_num=self.student_num, card_id=self.card_id,
-                        host=CFG["environment"]["api_host"], pace=pace)
-    def mark_consumed(self):
-        print("[auth] token 标记消耗")
+def load_config():
+    with open(CFG_PATH, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def log(msg):
     print(msg, flush=True)
 
 
-VENA4 = False   # True=只打随机 4 个打卡点（模拟真实分配）
+# ---------- 账号上下文 ----------
+class Account:
+    """封装单个账号的全部信息，供提交流程使用"""
+    def __init__(self, acc_dict: dict, cfg: dict):
+        self.raw = acc_dict
+        self.alias = acc_dict.get("alias", acc_dict.get("name", acc_dict["student_num"]))
+        self.uid = acc_dict["uid"]
+        self.school_id = acc_dict["school_id"]
+        self.student_num = acc_dict["student_num"]
+        self.card_id = acc_dict.get("card_id", acc_dict["student_num"])
+        self.token = acc_dict.get("auth", {}).get("token", "")
+        self.api_host = cfg.get("environment", {}).get("api_host", "lepao.ctbu.edu.cn")
+        # 策略参数（账号级覆盖 > 全局默认）
+        pol = {**DEFAULTS}
+        pol.update(cfg.get("policy", {}))
+        pol.update(acc_dict.get("policy", {}))
+        self.dist_lo = pol["dist_lo"]
+        self.dist_hi = pol["dist_hi"]
+        self.pace_lo = pol["pace_lo"]
+        self.pace_hi = pol["pace_hi"]
+        self.vena4 = pol.get("vena4", False)
+        self.mobile_model = pol.get("mobile_model", "iPhone14,3")
+
+    def make_client(self, pace=0.0):
+        return V3Client(uid=self.uid, token=self.token, school_id=self.school_id,
+                        student_num=self.student_num, card_id=self.card_id,
+                        host=self.api_host, pace=pace)
+
+    def __repr__(self):
+        return f"Account({self.alias}#{self.uid})"
 
 
-def gen_with_retry(cps, rnd, attempts=8, canary=False):
-    """生成直到通过全部自检和学校窗口。canary=True 时用最小爆炸半径参数"""
+# ---------- 轨迹生成 ----------
+def gen_with_retry(cps, rnd, acc: Account, attempts=8, canary=False):
+    d_lo = 2.60 if canary else acc.dist_lo
+    d_hi = 2.85 if canary else acc.dist_hi
+    p_lo = 300 if canary else acc.pace_lo
+    p_hi = 460 if canary else acc.pace_hi
     for k in range(attempts):
-        if canary:
-            target = rnd.uniform(2.62, 2.72) * 1000     # 金丝雀: 校规最低 2.5+缓冲
-        else:
-            target = rnd.uniform(2.75, 4.70) * 1000
-        res = CT.generate_run(cps, target, rnd, vena4=VENA4)
+        target = rnd.uniform(d_lo + 0.15, d_hi - 0.20) * 1000
+        res = CT.generate_run(cps, target, rnd, vena4=acc.vena4)
         res["_target"] = target
         dist = res["distance_km"]
         used = res["used_time"]
         pace = used / dist if dist else 9e9
-        ok_dist = (2.60 if canary else DIST_LO) <= dist <= (2.85 if canary else DIST_HI)
-        ok_pace = (300 if canary else PACE_LO) <= pace <= (460 if canary else PACE_HI)
+        ok_dist = d_lo <= dist <= d_hi
+        ok_pace = p_lo <= pace <= p_hi
         ok_time = used <= 3300 if dist <= 3.0 else used <= 6900
         checks = CT.self_check(res)
-        if VENA4:
-            checks.pop("checkpoints(>=4)", None)   # vena4 模式下打卡点数单独校验
+        if acc.vena4:
+            checks.pop("checkpoints(>=4)", None)
         failed = {k2: v for k2, v in checks.items() if not v[0]}
-        want_cp = 4 if VENA4 else 12
+        want_cp = 4 if acc.vena4 else 12
         cp_n = len(res["crossings"])
-        if VENA4 and cp_n < want_cp:
+        if acc.vena4 and cp_n < want_cp:
             failed["checkpoints"] = (f"{cp_n}<{want_cp}",)
-        elif not VENA4 and cp_n != want_cp:
+        elif not acc.vena4 and cp_n != want_cp:
             failed["checkpoints"] = (f"{cp_n}/{want_cp}",)
-        log(f"  [gen.{k}] target={target:.0f}m {dist}km {used}s pace={int(pace)}s/km pts={res['path_pts']} "
-            f"steps={res['step_num']} | {'PASS' if not failed else 'FAIL ' + json.dumps({k2: v[1] for k2, v in failed.items()}, ensure_ascii=False)}")
+        log(f"  [{acc.alias} gen.{k}] target={target:.0f}m {dist}km {used}s pace={int(pace)}s/km "
+            f"pts={res['path_pts']} steps={res['step_num']} | "
+            f"{'PASS' if not failed else 'FAIL ' + json.dumps({k2: v[1] for k2, v in failed.items()}, ensure_ascii=False)}")
         if ok_dist and ok_pace and ok_time and not failed:
             return res
-    raise RuntimeError("轨迹生成重试耗尽")
+    raise RuntimeError(f"[{acc.alias}] 轨迹生成重试耗尽")
 
 
-def run(submit=False, canary=False):
+# ---------- 提交全流程 ----------
+def run_for_account(acc: Account, submit=False, canary=False):
+    """对单个账号执行完整的乐跑提交流程"""
     rnd = random.Random()
-    client = AuthShim().make_client(pace=0.8)
+    client = acc.make_client(pace=0.8)
 
     # [0] 真门
     r = client.post("/v3/api.php/WpRun/getTermList", {})
     if isinstance(r, dict) and r.get("status") == 101:
-        log("TOKEN_DEAD")
+        log(f"[{acc.alias}] TOKEN_DEAD")
         return None, 2
     s = client.get_school_info()
-    log(f"[0] token 有效 | {s.get('school_name')}")
+    log(f"[{acc.alias} 0] token 有效 | {s.get('school_name')}")
 
     # [1] 跑区/打卡点
     cfg = client.before_run()
@@ -102,7 +123,7 @@ def run(submit=False, canary=False):
             cps.append((float(la), float(lo), str(p.get("id"))))
         except Exception:
             continue
-    log(f"[1] 跑区={zone}({cfg.get('run_zone_name')}) 打卡点x{len(cps)} 学期={term_id}")
+    log(f"[{acc.alias} 1] 跑区={zone}({cfg.get('run_zone_name')}) 打卡点x{len(cps)} 学期={term_id}")
     if len(cps) < 2:
         return None, 4
 
@@ -120,18 +141,18 @@ def run(submit=False, canary=False):
                 pass
         if not (isinstance(rr, dict) and rr.get("list")):
             break
-    log(f"[2] 今日已完成 {done} 次 (上限 1)")
+    log(f"[{acc.alias} 2] 今日已完成 {done} 次 (上限 1)")
     if done >= 1 and submit:
-        log("当日额度已满, 不提交")
+        log(f"[{acc.alias}] 当日额度已满, 不提交")
         return None, 3
 
     # [3] 服务器时间
     srv_now = client.get_timestamp()
-    log(f"[3] 服务器时间={srv_now}")
+    log(f"[{acc.alias} 3] 服务器时间={srv_now}")
 
     # [4] 生成
-    log("[4] 生成轨迹:")
-    res = gen_with_retry(cps, rnd, canary=canary)
+    log(f"[{acc.alias} 4] 生成轨迹:")
+    res = gen_with_retry(cps, rnd, acc, canary=canary)
     tr_json = json.dumps(res["track"], ensure_ascii=False, separators=(",", ":"))
     step_info = json.dumps(res["step_info"], separators=(",", ":"))
 
@@ -153,16 +174,16 @@ def run(submit=False, canary=False):
         "file_img": "",
         "is_running_area_valid": 1,
         "mobileDeviceId": 1,
-        "mobileModel": MOBILE_MODEL,
+        "mobileModel": acc.mobile_model,
         "mobileOsVersion": 1,
         "step_info": step_info,
         "step_num": int(res["step_num"]),
         "used_time": int(res["used_time"]),
         "record_file": record_file,
     }
-    window = datetime.datetime.fromtimestamp(start_time).strftime("%H:%M") + \
+    win = datetime.datetime.fromtimestamp(start_time).strftime("%H:%M") + \
         "~" + datetime.datetime.fromtimestamp(end_time).strftime("%H:%M")
-    log(f"[5] record_file={record_file} 时间窗={window} 距离={g['distance']}km")
+    log(f"[{acc.alias} 5] record_file={record_file} 时间窗={win} 距离={g['distance']}km")
 
     if not submit:
         out = {"stopRun_biz": g, "crossings": res["crossings"],
@@ -174,48 +195,48 @@ def run(submit=False, canary=False):
     time.sleep(rnd.uniform(0.5, 1.3))
     sts = client.get_oss_sts()
     if not isinstance(sts, dict) or "AccessKeySecret" not in sts:
-        log(f"getOssSts 异常: {str(sts)[:200]}")
+        log(f"[{acc.alias}] getOssSts 异常: {str(sts)[:200]}")
         return None, 4
     status, rbody = REC.upload_to_oss(encrypt_data(tr_json), sts, now_ms, record_file, rnd)
-    log(f"[6] OSS 轨迹上传 status={status}")
+    log(f"[{acc.alias} 6] OSS 轨迹上传 status={status}")
     if status not in (200, 203, 204):
-        log(f"OSS 上传失败: {rbody[:400]}")
+        log(f"[{acc.alias}] OSS 上传失败: {rbody[:400]}")
         return None, 4
 
     # [7] stopRun
     time.sleep(rnd.uniform(0.8, 2.0))
-    log(f"[7] stopRun: {g['distance']}km {g['used_time']}s steps={g['step_num']}")
+    log(f"[{acc.alias} 7] stopRun: {g['distance']}km {g['used_time']}s steps={g['step_num']}")
     resp = client.stop_run(g)
-    log("[7] 响应: " + json.dumps(resp, ensure_ascii=False)[:300])
+    log(f"[{acc.alias} 7] 响应: " + json.dumps(resp, ensure_ascii=False)[:300])
     if isinstance(resp, str) and "has" in resp.lower():
-        log("[7] 服务器返回已存在(has)——当日已有记录, 视为成功")
+        log(f"[{acc.alias} 7] 服务器返回已存在(has)——当日已有记录")
         return {"record_id": None, "distance": g["distance"], "already": True}, 0
     if not isinstance(resp, dict) or not resp.get("record_id"):
         return resp, 4
     record_id = resp["record_id"]
 
-    # [8] 陀螺仪补传 (真机行为, 堵 V4 传感器缺口)
+    # [8] 陀螺仪补传
     try:
         time.sleep(rnd.uniform(1.0, 2.5))
         sts2 = client.get_oss_sts()
         gkey = REC.gyroscope_key(rnd)
         st2, rb2 = REC.upload_oss_content(sts2, gkey,
                                           json.dumps(res["gyr"], separators=(",", ":")), rnd)
-        log(f"[8] OSS 陀螺仪上传 status={st2} samples={len(res['gyr'])}")
+        log(f"[{acc.alias} 8] OSS 陀螺仪上传 status={st2} samples={len(res['gyr'])}")
         if st2 in (200, 203, 204):
             gy = client.post("/v3/api.php/Run2/gyroscope",
                              {"record_id": record_id, "gyroscope_file": gkey})
-            log(f"[8] Run2/gyroscope → {json.dumps(gy, ensure_ascii=False)[:200]}")
+            log(f"[{acc.alias} 8] Run2/gyroscope → {json.dumps(gy, ensure_ascii=False)[:200]}")
         else:
-            log(f"[8] 陀螺仪上传失败(不影响记录): {rb2[:200]}")
+            log(f"[{acc.alias} 8] 陀螺仪上传失败(不影响记录): {rb2[:200]}")
     except Exception as e:
-        log(f"[8] 陀螺仪补传异常(不影响记录): {e}")
+        log(f"[{acc.alias} 8] 陀螺仪补传异常(不影响记录): {e}")
 
     # [9] 复核
     time.sleep(rnd.uniform(2.5, 5.0))
     detail = client.post("/v3/api.php/Run/recordDetailV270",
                          {"record_id": str(record_id), "year_num": str(datetime.date.today().year)})
-    log("[9] recordDetail: " + json.dumps(detail, ensure_ascii=False)[:500])
+    log(f"[{acc.alias} 9] recordDetail: " + json.dumps(detail, ensure_ascii=False)[:500])
     summary = {
         "record_id": record_id,
         "distance": g["distance"],
@@ -227,14 +248,38 @@ def run(submit=False, canary=False):
     return summary, 0
 
 
+# ---------- 公共 API ----------
+def submit_account(account_dict: dict, cfg: dict = None, canary=False):
+    """对外接口：提交单个账号的乐跑
+    
+    account_dict: 完整账号配置（含 auth.token, uid, school_id 等）
+    cfg: 全局配置（不传则从 config.json 加载）
+    返回: (summary_dict|None, exit_code)
+    """
+    if cfg is None:
+        cfg = load_config()
+    acc = Account(account_dict, cfg)
+    return run_for_account(acc, submit=True, canary=canary)
+
+
+def dryrun_account(account_dict: dict, cfg: dict = None):
+    """对外接口：dry-run 单个账号（零写入）"""
+    if cfg is None:
+        cfg = load_config()
+    acc = Account(account_dict, cfg)
+    return run_for_account(acc, submit=False)
+
+
+# ---------- CLI 兼容入口 ----------
 if __name__ == "__main__":
+    cfg = load_config()
+    AK = list(cfg["accounts"].keys())[0]  # 默认第一个账号
+    acc_dict = cfg["accounts"][AK]
+    acc = Account(acc_dict, cfg)
     submit = "--submit" in sys.argv
     canary = "--canary" in sys.argv
-    if "--vena4" in sys.argv or CFG.get("checkpoint_mode") == "vena4":
-        VENA4 = True
-    if canary:
-        # 金丝雀模式: 距离/配速压到最保守
-        PACE_LO, PACE_HI = 300, 460
-    summary, code = run(submit=submit, canary=canary)
+    if "--vena4" in sys.argv:
+        acc.vena4 = True
+    summary, code = run_for_account(acc, submit=submit, canary=canary)
     print("EXIT", code, flush=True)
     print(json.dumps(summary, ensure_ascii=False, indent=1) if summary else "no summary")
