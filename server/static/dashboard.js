@@ -980,7 +980,7 @@
     if (!events.length) {
       body = stateBlock('empty', {
         title: '暂无最近执行动态',
-        desc: '手动提交或调度触发后，事件会出现在此。本区按设定间隔局部刷新，不会触发整页刷新。'
+        desc: '后台调度器触发的执行与凭证更新会在此产生事件；手动提交不写服务端运行日志，不会出现在此。本区按设定间隔局部刷新，不会触发整页刷新。'
       });
     } else {
       body = '<div class="list-scroll">' + events.map(function (o) {
