@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="same-origin">
+<title>概览工作台 · CTBU 乐跑主页管理系统</title>
+<link rel="stylesheet" href="/static/dashboard.css">
+<script src="/static/dashboard.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">跳到主内容</a>
+
+<div class="app-shell">
+  <!-- ===================== M01 · L1 常驻主导航 ===================== -->
+  <aside class="sidebar" id="sidebar" aria-label="侧边主导航">
+    <div class="brand">
+      <span class="brand-mark mono" aria-hidden="true">CTBU</span>
+      <span class="brand-text">
+        <span class="brand-title">CTBU 乐跑</span>
+        <span class="brand-sub">主页管理系统</span>
+      </span>
+    </div>
+
+    <nav class="l1-nav" aria-label="L1 主导航">
+      <div class="nav-group">
+        <p class="nav-group-label eyebrow" id="nav-group-situation">态势</p>
+        <ul aria-labelledby="nav-group-situation">
+          <li><button type="button" class="nav-item is-active" data-view="overview" aria-current="page"><span class="nav-index mono">01</span><span>概览工作台</span></button></li>
+        </ul>
+      </div>
+      <div class="nav-group">
+        <p class="nav-group-label eyebrow" id="nav-group-ledger">台账</p>
+        <ul aria-labelledby="nav-group-ledger">
+          <li><button type="button" class="nav-item" data-view="accounts"><span class="nav-index mono">02</span><span>账号与凭证</span></button></li>
+          <li><button type="button" class="nav-item" data-view="records"><span class="nav-index mono">03</span><span>记录与统计</span></button></li>
+        </ul>
+      </div>
+      <div class="nav-group">
+        <p class="nav-group-label eyebrow" id="nav-group-runtime">运行</p>
+        <ul aria-labelledby="nav-group-runtime">
+          <li><button type="button" class="nav-item" data-view="schedule"><span class="nav-index mono">04</span><span>运行与调度</span></button></li>
+          <li><button type="button" class="nav-item" data-view="logs"><span class="nav-index mono">05</span><span>运行日志</span></button></li>
+        </ul>
+      </div>
+      <div class="nav-group">
+        <p class="nav-group-label eyebrow" id="nav-group-system">系统</p>
+        <ul aria-labelledby="nav-group-system">
+          <li><button type="button" class="nav-item" data-view="settings"><span class="nav-index mono">06</span><span>系统设置</span></button></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <span class="eyebrow">LRL-1.0 / 衍生版</span>
+      <p>仅供学习研究 · 不提供商业授权</p>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <!-- ===================== M01 · 全局框架顶栏 ===================== -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button type="button" class="icon-btn nav-toggle" id="nav-toggle" aria-label="展开导航" aria-expanded="false" aria-controls="sidebar">
+          <span class="icon-bars" aria-hidden="true"></span>
+        </button>
+        <nav class="breadcrumb" aria-label="当前位置">
+          <span>主页</span>
+          <span class="breadcrumb-sep" aria-hidden="true">/</span>
+          <span id="crumb-current" aria-current="page">概览工作台</span>
+        </nav>
+      </div>
+
+      <div class="topbar-meta" aria-label="运行环境与服务状态">
+        <span class="meta-chip">环境 <b class="mono" id="env-value">—</b></span>
+        <span class="meta-chip">服务健康 <span id="health-value" class="badge badge--disabled">需关注</span></span>
+        <span class="meta-chip meta-chip--mono">服务器时间 <time id="server-time">—</time></span>
+        <span class="meta-chip meta-chip--mono">数据时点 <time id="data-time">—</time></span>
+        <span class="meta-chip meta-chip--readonly" id="readonly-chip" hidden>只读</span>
+      </div>
+
+      <div class="topbar-actions">
+        <button type="button" class="btn-primary" id="manual-refresh">刷新数据</button>
+      </div>
+    </header>
+
+    <div class="connection-banner" id="connection-banner" role="alert" hidden>
+      <span id="connection-banner-text"></span>
+      <button type="button" class="btn-secondary btn-mini" id="banner-retry">重试加载</button>
+    </div>
+
+    <main id="main" class="main-scroll" tabindex="-1">
+      <noscript>
+        <div class="state-block state-block--error" role="alert">
+          <p class="state-title">需要启用 JavaScript</p>
+          <p class="state-desc">本看板的账号、窗口、告警与执行动态均由同源接口下发，静态 HTML 不含任何业务数据。请启用 JavaScript 后重新打开本页。</p>
+        </div>
+      </noscript>
+
+      <!-- ============================================================
+           P01 概览工作台 · 页面问题：今天是否正常？
+           ============================================================ -->
+      <div class="view" data-view-panel="overview">
+        <div class="page-head">
+          <div>
+            <p class="eyebrow">P01 / 态势</p>
+            <h1>概览工作台</h1>
+            <p class="page-sub">今天是否正常？账号、时间窗、告警与最近执行一屏判断。</p>
+          </div>
+          <div class="head-status" id="overall-status" aria-live="polite"></div>
+        </div>
+
+        <!-- M02 状态摘要卡组 -->
+        <section class="section" aria-labelledby="m02-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">M02</p>
+              <h2 id="m02-title">状态摘要</h2>
+            </div>
+            <p class="section-note" id="summary-scope">统计口径：仅 <code>record_status = 1</code> 计入成绩与达标；无效记录计入总次数但不计入达标与有效里程；达标目标由服务端下发。</p>
+          </div>
+          <div class="stat-grid" id="summary-region" data-region="summary" aria-live="polite" aria-busy="true">
+            <div class="skeleton skeleton--card" aria-hidden="true"></div>
+            <div class="skeleton skeleton--card" aria-hidden="true"></div>
+            <div class="skeleton skeleton--card" aria-hidden="true"></div>
+            <div class="skeleton skeleton--card" aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <!-- M03 今日运行时间轴（主导区） -->
+        <section class="section" aria-labelledby="m03-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">M03</p>
+              <h2 id="m03-title">今日运行时间轴</h2>
+            </div>
+            <p class="section-note">目标时刻由服务端按日期种子生成、全天恒定，窗口末预留余量；时区以服务端 <code>Asia/Shanghai</code> 为准。</p>
+          </div>
+          <div class="card timeline-card" id="timeline-region" data-region="timeline" aria-live="polite" aria-busy="true">
+            <div class="skeleton skeleton--lines" aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <!-- M04 账号状态表：独占整行，保证 6 列与行内操作不被横向裁切 -->
+        <section class="section" aria-labelledby="m04-title">
+            <div class="section-head section-head--stack">
+              <div>
+                <p class="eyebrow">M04</p>
+                <h2 id="m04-title">账号状态表</h2>
+              </div>
+              <div class="toolbar">
+                <label class="search-field">
+                  <span class="sr-only">按姓名或学号筛选账号</span>
+                  <input type="search" id="account-filter" placeholder="按姓名或学号筛选" autocomplete="off" spellcheck="false">
+                </label>
+                <button type="button" class="btn-secondary btn-mini" id="clear-filter" data-action="clear-filter" hidden>清空筛选</button>
+                <button type="button" class="btn-secondary btn-mini" data-action="goto" data-view="accounts">查看台账</button>
+              </div>
+            </div>
+            <div class="card card--flush" id="account-region" data-region="accounts" aria-live="polite" aria-busy="true">
+              <div class="skeleton skeleton--lines" aria-hidden="true"></div>
+            </div>
+        </section>
+
+        <div class="split-grid">
+          <!-- M05 告警与待办（副区） -->
+            <section class="section" aria-labelledby="m05-title">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">M05</p>
+                  <h2 id="m05-title">告警与待办</h2>
+                </div>
+              </div>
+              <div class="card card--flush" id="alerts-region" data-region="alerts" aria-live="polite" aria-busy="true">
+                <div class="skeleton skeleton--lines" aria-hidden="true"></div>
+              </div>
+            </section>
+
+            <!-- M11 最近执行动态：仅此区 30s 局部刷新 -->
+            <section class="section" aria-labelledby="m11-title">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">M11</p>
+                  <h2 id="m11-title">最近执行动态</h2>
+                </div>
+                <div class="section-tools">
+                  <span class="refresh-hint mono" id="refresh-countdown" aria-live="off">—</span>
+                  <button type="button" class="btn-secondary btn-mini" data-action="goto" data-view="logs">查看日志</button>
+                </div>
+              </div>
+              <div class="card card--flush" id="events-region" data-region="events" aria-live="polite" aria-busy="true">
+                <div class="skeleton skeleton--lines" aria-hidden="true"></div>
+              </div>
+              <p class="region-foot">仅此区按设定间隔局部刷新；其余数据区点「刷新数据」更新，服务器时间与数据时点常显。</p>
+          </section>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           P02 账号与凭证（L1 切换 / L2 Tab + 抽屉，不新增页面层级）
+           ============================================================ -->
+      <div class="view" data-view-panel="accounts" hidden>
+        <div class="page-head">
+          <div>
+            <p class="eyebrow">P02 / 台账</p>
+            <h1>账号与凭证</h1>
+            <p class="page-sub">谁能跑、凭证是否有效？选中账号做批量处理，点「详情」在右侧抽屉查看全部信息。</p>
+          </div>
+        </div>
+
+        <section class="section" aria-labelledby="m12-title">
+          <div class="section-head section-head--stack">
+            <div>
+              <p class="eyebrow">M12</p>
+              <h2 id="m12-title">成员台账与批量操作</h2>
+            </div>
+            <div class="toolbar">
+              <label class="search-field">
+                <span class="sr-only">按姓名或学号筛选账号</span>
+                <input type="search" id="account-filter-full" placeholder="按姓名或学号筛选" autocomplete="off" spellcheck="false">
+              </label>
+              <button type="button" class="btn-secondary btn-mini" id="clear-filter-full" data-action="clear-filter-full" hidden>清空筛选</button>
+              <button type="button" class="btn-secondary btn-mini" id="open-token-form">更新凭证</button>
+              <span class="disabled-reason" id="token-form-reason" hidden>只读模式：当前会话无写权限</span>
+            </div>
+          </div>
+          <div class="batch-bar" id="batch-bar" hidden aria-live="polite"></div>
+          <div class="card card--flush" id="accounts-full-region" data-region="accounts-full" aria-busy="true">
+            <div class="skeleton skeleton--lines" aria-hidden="true"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ============================================================
+           P03 运行与调度
+           ============================================================ -->
+      <div class="view" data-view-panel="schedule" hidden>
+        <div class="page-head">
+          <div>
+            <p class="eyebrow">P03 / 运行</p>
+            <h1>运行与调度</h1>
+            <p class="page-sub">何时跑、跑到哪一步？窗口与今日状态机均来自服务端真实字段。</p>
+          </div>
+        </div>
+        <div class="card card--flush" id="schedule-region" data-region="schedule" aria-busy="true">
+          <div class="skeleton skeleton--lines" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           P04 记录与统计
+           ============================================================ -->
+      <div class="view" data-view-panel="records" hidden>
+        <div class="page-head">
+          <div>
+            <p class="eyebrow">P04 / 台账</p>
+            <h1>记录与统计</h1>
+            <p class="page-sub">跑了多少、是否达标？退出码统一翻译成可操作结果，不暴露原始异常栈。</p>
+          </div>
+        </div>
+        <div class="card card--flush" id="records-region" data-region="records" aria-busy="true">
+          <div class="skeleton skeleton--lines" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           P05 运行日志（L2 Tab 筛选）
+           ============================================================ -->
+      <div class="view" data-view-panel="logs" hidden>
+        <div class="page-head">
+          <div>
+            <p class="eyebrow">P05 / 运行</p>
+            <h1>运行日志</h1>
+            <p class="page-sub">出了什么问题？按级别筛选服务端日志尾部与最近事件。</p>
+          </div>
+        </div>
+        <div class="l2-tabs" role="tablist" aria-label="日志级别筛选" id="log-level-tabs">
+          <button type="button" class="l2-tab is-active" role="tab" aria-selected="true" data-level="all">全部</button>
+          <button type="button" class="l2-tab" role="tab" aria-selected="false" data-level="error">失败</button>
+          <button type="button" class="l2-tab" role="tab" aria-selected="false" data-level="attention">需关注</button>
+          <button type="button" class="l2-tab" role="tab" aria-selected="false" data-level="ok">正常</button>
+        </div>
+        <div class="toolbar toolbar--standalone">
+          <label class="check-field"><input type="checkbox" id="log-autoscroll" checked><span>自动定位到最新</span></label>
+          <button type="button" class="btn-secondary btn-mini" disabled title="服务端未提供日志导出端点（契约未定义）" aria-disabled="true">导出日志</button>
+          <span class="disabled-reason">导出端点未开放</span>
+        </div>
+        <div class="card card--flush" id="logs-region" data-region="logs" aria-busy="true">
+          <div class="skeleton skeleton--lines" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           P06 系统设置（只读）
+           ============================================================ -->
+      <div class="view" data-view-panel="settings" hidden>
+        <div class="page-head">
+          <div>
+            <p class="eyebrow">P06 / 系统</p>
+            <h1>系统设置</h1>
+            <p class="page-sub">部署环境与参数。当前为只读视图，服务端未开放配置写入端点。</p>
+          </div>
+        </div>
+        <div class="card card--flush" id="settings-region" data-region="settings" aria-busy="true">
+          <div class="skeleton skeleton--lines" aria-hidden="true"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===================== M01 · 合规页脚（常驻） ===================== -->
+    <footer class="compliance-footer" aria-label="合规声明">
+      <span>LRL-1.0 衍生版 · 原作者 dan-cun / lepao3 · 仅供学习研究 · 不提供商业授权 · 风险自负</span>
+      <span class="footer-hint">凭证仅本机使用 · 界面仅展示 token 前缀</span>
+    </footer>
+  </div>
+</div>
+
+<!-- ===================== L2 · 账号详情抽屉（M06 / M07） ===================== -->
+<dialog class="drawer" id="account-drawer" aria-labelledby="drawer-title">
+  <div class="drawer-head">
+    <div>
+      <p class="eyebrow">M06 / 账号详情</p>
+      <h2 id="drawer-title">账号详情</h2>
+    </div>
+    <button type="button" class="icon-btn" id="drawer-close" aria-label="关闭账号详情">×</button>
+  </div>
+  <div class="l2-tabs drawer-tabs" role="tablist" aria-label="账号详情分页" id="drawer-tabs">
+    <button type="button" class="l2-tab is-active" role="tab" aria-selected="true" data-drawer-tab="base" id="dtab-base" aria-controls="dpanel-base">概览</button>
+    <button type="button" class="l2-tab" role="tab" aria-selected="false" data-drawer-tab="cred" id="dtab-cred" aria-controls="dpanel-cred" tabindex="-1">凭证</button>
+    <button type="button" class="l2-tab" role="tab" aria-selected="false" data-drawer-tab="policy" id="dtab-policy" aria-controls="dpanel-policy" tabindex="-1">策略</button>
+    <button type="button" class="l2-tab" role="tab" aria-selected="false" data-drawer-tab="record" id="dtab-record" aria-controls="dpanel-record" tabindex="-1">记录</button>
+    <button type="button" class="l2-tab" role="tab" aria-selected="false" data-drawer-tab="ops" id="dtab-ops" aria-controls="dpanel-ops" tabindex="-1">操作</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</dialog>
+
+<!-- ===================== L2 · 危险操作二次确认 ===================== -->
+<dialog class="confirm-dialog" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-desc">
+  <form method="dialog" id="confirm-form">
+    <div class="confirm-head">
+      <span class="eyebrow">危险操作 / 二次确认</span>
+      <h2 id="confirm-title">确认操作</h2>
+    </div>
+    <div class="confirm-body">
+      <p id="confirm-desc" class="confirm-lead"></p>
+      <dl class="confirm-list" id="confirm-list"></dl>
+      <p class="confirm-warn">请确认已取得账号本人同意：本操作不可撤销，服务端不提供回退；结果以接口返回为准，看板可能不立即反映。</p>
+      <p class="form-error" id="confirm-error" role="alert"></p>
+    </div>
+    <div class="confirm-foot">
+      <button type="button" class="btn-secondary" id="confirm-cancel">取消</button>
+      <button type="button" class="btn-danger" id="confirm-ok">确认提交</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===================== 即时反馈 ===================== -->
+<div class="toast-region" id="toast-region" role="region" aria-label="操作反馈" aria-live="polite"></div>
+</body>
+</html>

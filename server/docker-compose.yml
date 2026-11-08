@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   lepao-server:
     build:
@@ -8,7 +6,8 @@ services:
     container_name: ctbu-lepao
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      # 只绑定本机回环：公网由 Nginx 反代暴露，禁止 8080 直出到 0.0.0.0
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./data/accounts.json:/app/data/accounts.json
       - ./data/state:/app/data/state
@@ -16,3 +15,16 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - PORT=8080
+      - LEPAO_DATA=/app/data
+      # 可选只读展示开关（默认 false，不启用）：true 时 /api/dashboard 下发
+      # read_only:true + permissions.write:false；仅驱动前端只读态，不拦截写接口
+      # - LEPAO_READ_ONLY=true
+      # 可选：仅用于生成展示用链接，留空=同源；域名只在 Nginx/部署层配置
+      # - PUBLIC_BASE_URL=https://<your-domain>
+      # - LEPAO_ENV=production
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/status', timeout=4)"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
