@@ -1201,7 +1201,7 @@
     if (!dlg) return;
     var acc = sn ? findAccount(sn) : null;
     if (sn && !acc) {
-      showToast({ type: 'error', sticky: true, title: '账号不可定位',
+      showToast({ type: 'error', sticky: true, category: 'operation', title: '账号不可定位',
         message: '该学号已不在最近一次全量数据中，点「刷新数据」后重试。',
         actions: [{ label: '刷新数据', key: 'refresh' }] });
       return;
@@ -1421,6 +1421,7 @@
       showToast({
         type: info.key === 'error' || info.key === 'attention' ? 'error' : 'success',
         sticky: info.key === 'error',
+        category: 'operation',
         title: info.key === 'error' ? '提交未成功' : '提交已执行（结果以接口返回为准）',
         message: msg,
         actions: info.key === 'error'
@@ -1436,7 +1437,7 @@
       if (ok) { ok.disabled = false; ok.textContent = '确认提交'; }
       if (e instanceof ApiError && (e.status === 401 || e.status === 403)) setReadOnly(true);
       showToast({
-        type: 'error', sticky: true, title: '提交失败',
+        type: 'error', sticky: true, category: 'operation', title: '提交失败',
         message: reason + '。该端点不写运行日志，请重试或联系运维检查服务端；错误不会自动消失。',
         actions: [{ label: '查看日志', key: 'view-logs' }, { label: '重新提交', key: 'retry-submit', sn: ctx.sn }]
       });
@@ -1476,7 +1477,7 @@
       if (err) err.textContent = '凭证下发失败：' + reason + '（提示保持至处理）';
       if (e instanceof ApiError && (e.status === 401 || e.status === 403)) setReadOnly(true);
       showToast({
-        type: 'error', sticky: true, title: '凭证下发失败',
+        type: 'error', sticky: true, category: 'operation', title: '凭证下发失败',
         message: reason + '。请检查学号与 token 后重试，或联系运维。',
         actions: [{ label: '重新打开凭证表单', key: 'open-cred', sn: sn }]
       });
@@ -1497,6 +1498,8 @@
     el.className = 'toast toast--' + (cfg.type || 'info');
     el.setAttribute('role', cfg.type === 'error' ? 'alert' : 'status');
     el.dataset.toastId = String(id);
+    // data = 取数失败（重试成功即视为已处理）；operation = 写操作失败（必须保持至用户处理）
+    el.dataset.toastCategory = cfg.category || 'data';
     var actions = cfg.actions || [];
     toastActions.set(id, actions);
     var actionHtml = actions.length
@@ -1524,9 +1527,9 @@
     if (el) el.remove();
   }
 
-  // 重试成功即视为「已处理」，清掉保持中的失败提示
+  // 取数重试成功即视为「已处理」；写操作失败提示必须保持，不能被刷新冲掉
   function clearErrorToasts() {
-    $$('#toast-region .toast--error').forEach(function (el) {
+    $$('#toast-region .toast--error[data-toast-category="data"]').forEach(function (el) {
       dismissToast(Number(el.dataset.toastId));
     });
   }

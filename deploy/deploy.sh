@@ -129,9 +129,9 @@ fi
 CONFLICTS="$(grep -RlF --include='*.conf' 'server_name codexi.cn' "$VHOST_DIR" 2>/dev/null \
              | grep -vF "$VHOST_DST" || true)"
 if [ -n "$CONFLICTS" ]; then
-    echo "警告：以下配置也声明了 codexi.cn，可能产生 conflicting server name（面板同名站点）："
-    echo "$CONFLICTS"
-    echo "脚本不自动删除，请确认宝塔面板未创建 codexi.cn 站点"
+    echo "检测到其他也声明了 codexi.cn 的 vhost（宝塔面板生成的同名站点）：" >&2
+    echo "$CONFLICTS" >&2
+    fail "同名站点会造成 Nginx 'conflicting server name' 且由先加载者命中，页面可能打不开。请先在宝塔面板停用/删除同名站点（或人工确认后移除对应 .conf），再重跑本脚本；本次未安装 vhost、未 reload"
 fi
 cp -f "$VHOST_SRC" "$VHOST_DST"
 chmod 0644 "$VHOST_DST"
@@ -210,9 +210,25 @@ check_url "GET /api/dashboard"          "/api/dashboard"         "codexi.cn"
 
 STATIC_HEADERS="$(curl -sSI --max-time 10 -H "Host: ${HOST_HEADER}" http://127.0.0.1/static/dashboard.css)" \
     || fail "静态资源 HEAD 请求失败（Nginx 反代或 Flask 静态路由异常）"
-echo "$STATIC_HEADERS" | grep -qiE 'Cache-Control:.*max-age=604800' || fail "静态资源未命中 7d 缓存头"
+echo "$STATIC_HEADERS" | grep -qiE 'Cache-Control:.*max-age=300' \
+    || fail "静态资源未命中 5 分钟短缓存头（期望 public, max-age=300, must-revalidate）"
+echo "$STATIC_HEADERS" | grep -qi 'must-revalidate' \
+    || fail "静态资源缺少 must-revalidate（改版后需重新校验，否则可能一直用旧 CSS/JS）"
 echo "$STATIC_HEADERS" | grep -qi 'X-Content-Type-Options: nosniff' || fail "静态资源缺少 nosniff 安全头"
-echo "  OK: /static/ 缓存头（public, max-age=604800）与安全头"
+if echo "$STATIC_HEADERS" | grep -qiE 'max-age=604800|immutable'; then
+    fail "静态资源仍带 7d / immutable 长缓存头，与 5 分钟短缓存仲裁冲突"
+fi
+echo "  OK: /static/ 5 分钟短缓存（public, max-age=300, must-revalidate）与安全头"
+
+# HTML 与 /api/* 一律 no-store：server 级 proxy_hide_header 隐藏上游 Cache-Control，
+# 由 Nginx 在 location / 单一来源下发（/api/* 也落在 location /）。
+for P in / /api/status /api/dashboard; do
+    H="$(curl -sSI --max-time 10 -H "Host: ${HOST_HEADER}" "http://127.0.0.1${P}")" \
+        || fail "${P} 的 HEAD 请求失败"
+    echo "$H" | grep -qi 'Cache-Control: no-store' \
+        || fail "${P} 未返回 Cache-Control: no-store（改版后会拿到旧 HTML 壳子 / 旧数据）"
+    echo "  OK: ${P} → Cache-Control: no-store"
+done
 
 DASH_JSON="$(curl -fsS --max-time 10 -H "Host: ${HOST_HEADER}" http://127.0.0.1/api/dashboard)" \
     || fail "GET /api/dashboard 失败"
