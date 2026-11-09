@@ -22,12 +22,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller mitmproxy pycryptodome requests
 
-      - name: Build LePaoToken.exe (单文件，内置 mitmproxy)
+      - name: Build LePaoToken single exe
         run: pyinstaller --onefile --windowed --name LePaoToken capture/capture_gui.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: LePaoToken-win64
-          path: dist\LePaoToken.exe
+          path: dist/LePaoToken.exe
           if-no-files-found: error
