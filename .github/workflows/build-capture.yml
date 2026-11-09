@@ -31,7 +31,7 @@ jobs:
           "@ | Set-Content -Path _mitmdump_entry.py -Encoding utf8
 
       - name: Build mitmdump.exe
-        run: pyinstaller --console --name mitmdump _mitmdump_entry.py
+        run: pyinstaller --onefile --console --name mitmdump --hiddenimport Crypto.Cipher.AES --hiddenimport Crypto.Util.Padding _mitmdump_entry.py
 
       - name: Build LePaoToken.exe
         run: pyinstaller --windowed --name LePaoToken --add-data "capture/token_addon.py;." capture/capture_gui.py
@@ -39,7 +39,7 @@ jobs:
       - name: Package zip
         shell: pwsh
         run: |
-          Copy-Item dist\mitmdump\mitmdump.exe dist\LePaoToken\
+          Copy-Item dist\mitmdump.exe dist\LePaoToken\
           Compress-Archive -Path dist\LePaoToken -DestinationPath LePaoToken-win64.zip
           Get-Item LePaoToken-win64.zip | Select-Object Name, Length
 
