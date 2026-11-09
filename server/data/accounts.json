@@ -15,9 +15,17 @@
     "pace_hi": 500
    },
    "auth": {
-    "token": "33BDFC26A54E5AE0723D4A94B6C8D7E1",
-    "issued_at": "2026-11-03T02:58:30",
+    "token": "33BDFC26C9BE90825EB470C718A64437",
+    "issued_at": "2026-11-04T08:34:50",
     "source": "mitm-capture"
+   },
+   "state": {
+    "date": "2026-11-09",
+    "done": true,
+    "attempts": 1,
+    "last_attempt_min": 413,
+    "last_run": "2026-11-09 06:53",
+    "last_exit": 0
    }
   }
  ]

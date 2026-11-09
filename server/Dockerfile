@@ -7,6 +7,10 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir pycryptodome flask requests
 
+# 校园平台证书链（*.ctbu.edu.cn → Xcc Trust OV → Certum 旧根，Debian CA 库不含，须显式信任）
+COPY server/ca/lepao-chain.crt /usr/local/share/ca-certificates/lepao-chain.crt
+RUN update-ca-certificates
+
 # 复制乐跑核心模块
 COPY lepaorun/lepao/ /app/lepao/
 COPY lepaorun/driver.py /app/driver.py

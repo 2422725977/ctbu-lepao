@@ -8,11 +8,16 @@ services:
     container_name: ctbu-lepao
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      # 仅绑定宿主机回环地址，局域网/外网无法访问（安全边界在网关层）
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./data/accounts.json:/app/data/accounts.json
-      - ./data/state:/app/data/state
       - ./data/logs:/app/data/logs
     environment:
       - TZ=Asia/Shanghai
       - PORT=8080
+      # 置 0 可只起 API 不起后台调度器（调试用）
+      - LEPAO_SCHEDULER=1
+      # 企业微信通知不走容器内代码（安全约束：容器零外呼）。
+      # 由宿主机 cron 监控容器日志并转发，示例（crontab -e 添加一行）：
+      # */5 * * * * docker logs ctbu-lepao --since 5m 2>&1 | grep -E "成功|TOKEN_DEAD" | while read l; do curl -s "你的机器人webhook地址" -H 'Content-Type: application/json' -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"$l\"}}" > /dev/null; done

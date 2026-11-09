@@ -2,17 +2,20 @@
 """mitmproxy addon: 拦截 lepao.ctbu.edu.cn 流量，解密提取 token。
 
 由 capture_gui.py 以 mitmdump -s token_addon.py 方式启动。
-捕获到 token 后写入 /tmp/lepao_captured_token.json 供主程序读取。
+捕获到 token 后写入当前目录的 lepao_captured_token.json 供主程序读取。
 """
 import json
 import base64
+import os
+import tempfile
 import urllib.parse as up
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
 KEY = b"Wet2C8d34f62ndi3"
 IV = b"K6iv85jBD8jgf32D"
-TOKEN_FILE = "/tmp/lepao_captured_token.json"
+# 跨平台临时目录（Windows 无 /tmp；与 capture_gui.py 监听路径一致）
+TOKEN_FILE = os.path.join(tempfile.gettempdir(), "lepao_captured_token.json")
 
 
 def decrypt_data(b64_text):

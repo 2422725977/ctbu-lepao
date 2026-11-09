@@ -5,20 +5,47 @@
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
-import subprocess, threading, json, os, sys, time, shutil
-import urllib.request, urllib.parse
+import subprocess, threading, json, os, sys, time, shutil, re, tempfile
+import urllib.request
+
+# ---------- 安全校验 ----------
+def _safe_sn(sn):
+    """学号仅允许字母数字下划线（防路径穿越）"""
+    sn = str(sn).strip()
+    if not re.match(r'^[a-zA-Z0-9_-]+$', sn):
+        raise ValueError(f"非法学号: {sn}")
+    return sn
+
+def _safe_server(url):
+    """服务器 URL 仅允许回环或局域网私网地址（防 SSRF，放行跨机上传）"""
+    import ipaddress
+    url = str(url).strip().rstrip("/")
+    parsed = urllib.parse.urlparse(url)
+    host = parsed.hostname or ""
+    try:
+        ip = ipaddress.ip_address(host)
+        ok = ip.is_loopback or ip.is_private
+    except ValueError:
+        ok = host in ("localhost",)
+    if parsed.scheme not in ("http", "https") or not ok:
+        raise ValueError(f"服务器地址不在白名单(仅允许本机/局域网): {url}")
+    return url, urllib.parse
 
 SERVER_URL = "http://localhost:8080"
 PROXY_PORT = 8888
-TOKEN_FILE = "/tmp/lepao_captured_token.json"
-ADDON_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "token_addon.py")
+TOKEN_FILE = os.path.join(tempfile.gettempdir(), "lepao_captured_token.json")
+# 打包(PyInstaller)后资源与同级文件位于可执行文件目录；源码运行时取脚本目录
+_BASE = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+ADDON_FILE = os.path.join(_BASE, "token_addon.py")
 
 for arg in sys.argv:
     if arg.startswith("--server="):
         SERVER_URL = arg.split("=", 1)[1]
 
 MITMDUMP = None
-for p in ["/tmp/cuavenv/bin/mitmdump",
+for p in [os.path.join(_BASE, "mitmdump"),                      # PyInstaller 打包: 与主程序同目录
+          os.path.join(_BASE, "mitmdump.exe"),
+          "/tmp/cuavenv/bin/mitmdump",
           os.path.join(sys.prefix, "bin", "mitmdump"),
           os.path.join(sys.prefix, "Scripts", "mitmdump.exe"),
           "mitmdump"]:
@@ -74,6 +101,11 @@ class CaptureApp:
 
     def start_capture(self):
         if self.running: return
+        try:
+            student = _safe_sn(self.student_var.get())
+            server = _safe_server(self.server_var.get())
+        except ValueError as e:
+            self._log(f"❌ {e}"); return
         self.running = True
         self.start_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
