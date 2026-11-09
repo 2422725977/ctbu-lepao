@@ -139,6 +139,9 @@ def validate_sn(sn):
 @app.route("/api/token", methods=["POST"])
 def api_token():
     """接收抓号客户端发来的 token"""
+    upload_key = os.environ.get("LEPAO_UPLOAD_KEY", "")
+    if upload_key and request.headers.get("X-LP-Key") != upload_key:
+        return jsonify({"error": "unauthorized"}), 403
     body = request.get_json(silent=True) or {}
     token = str(body.get("token", "")).strip()
     uid = body.get("uid")

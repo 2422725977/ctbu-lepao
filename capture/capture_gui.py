@@ -236,7 +236,9 @@ class CaptureApp:
     def _upload(self, server, student, token, uid):
         try:
             body = json.dumps({"student_num": student, "token": token, "uid": uid}).encode()
-            req = urllib.request.Request(server + "/api/token", data=body, method="POST", headers={"Content-Type": "application/json"})
+            req = urllib.request.Request(server + "/api/token", data=body, method="POST",
+                                         headers={"Content-Type": "application/json",
+                                                  "X-LP-Key": "05a0a68a53f2128c"})
             resp = urllib.request.urlopen(req, timeout=10)
             result = json.loads(resp.read().decode())
             if result.get("ok"):
