@@ -1,0 +1,86 @@
+61 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+65 INFO: PyInstaller: 6.22.3, contrib hooks: 2026.9
+65 INFO: Python: 3.14.6 (conda)
+75 INFO: Platform: macOS-27.2-arm64-arm-64bit-Mach-O
+75 INFO: Python environment: /Users/xi/Documents/校园乐跑/venv_capture
+75 INFO: wrote /Users/xi/Documents/校园乐跑/LePaoToken.spec
+80 INFO: Module search paths (PYTHONPATH):
+['/opt/anaconda3/lib/python314.zip',
+ '/opt/anaconda3/lib/python3.14',
+ '/opt/anaconda3/lib/python3.14/lib-dynload',
+ '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages',
+ '/Users/xi/Documents/校园乐跑/capture']
+34 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+199 INFO: Appending 'datas' from .spec
+199 INFO: checking Analysis
+199 INFO: Building Analysis because Analysis-00.toc is non existent
+199 INFO: Looking for Python shared library...
+200 INFO: Using Python shared library: /opt/anaconda3/lib/libpython3.14.dylib
+200 INFO: Running Analysis Analysis-00.toc
+200 INFO: Target bytecode optimization level: 0
+200 INFO: Initializing module dependency graph...
+201 INFO: Initializing module graph hook caches...
+207 INFO: Analyzing modules for base_library.zip ...
+29 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+31 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+43 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+980 INFO: Processing standard module hook 'hook-encodings.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+31 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+1165 INFO: Processing standard module hook 'hook-math.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+1964 INFO: Processing standard module hook 'hook-difflib.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+1973 INFO: Processing standard module hook 'hook-heapq.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+2025 INFO: Processing standard module hook 'hook-pickle.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+2954 INFO: Caching module dependency graph...
+3022 INFO: Analyzing /Users/xi/Documents/校园乐跑/capture/capture_gui.py
+3037 INFO: Processing pre-find-module-path hook 'hook-tkinter.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_find_module_path'
+3039 INFO: TclTkInfo: initializing cached Tcl/Tk info...
+3344 INFO: Processing standard module hook 'hook-_tkinter.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+3379 INFO: Processing module hooks (post-graph stage)...
+3380 INFO: Processing standard module hook 'hook-_tkinter.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+3384 INFO: Performing binary vs. data reclassification (322 entries)
+3450 INFO: Looking for ctypes DLLs
+3452 INFO: Analyzing run-time hooks ...
+3453 INFO: Including run-time hook 'pyi_rth_inspect.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/rthooks'
+3456 INFO: Including run-time hook 'pyi_rth__tkinter.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/rthooks'
+3462 INFO: Creating base_library.zip...
+3477 INFO: Looking for dynamic libraries
+3662 INFO: Warnings written to /Users/xi/Documents/校园乐跑/build/lepao/LePaoToken/warn-LePaoToken.txt
+3673 INFO: Graph cross-reference written to /Users/xi/Documents/校园乐跑/build/lepao/LePaoToken/xref-LePaoToken.html
+3736 INFO: checking PYZ
+3736 INFO: Building PYZ because PYZ-00.toc is non existent
+3736 INFO: Building PYZ (ZlibArchive) /Users/xi/Documents/校园乐跑/build/lepao/LePaoToken/PYZ-00.pyz
+3878 INFO: Building PYZ (ZlibArchive) /Users/xi/Documents/校园乐跑/build/lepao/LePaoToken/PYZ-00.pyz completed successfully.
+3879 INFO: EXE target arch: arm64
+3879 INFO: Code signing identity: None
+3879 INFO: checking PKG
+3879 INFO: Building PKG because PKG-00.toc is non existent
+3879 INFO: Building PKG (CArchive) LePaoToken.pkg
+3893 INFO: Building PKG (CArchive) LePaoToken.pkg completed successfully.
+3893 INFO: Bootloader /Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/bootloader/Darwin-64bit/runw
+3893 INFO: checking EXE
+3893 INFO: Building EXE because EXE-00.toc is non existent
+3893 INFO: Building EXE from EXE-00.toc
+3893 INFO: Copying bootloader EXE to /Users/xi/Documents/校园乐跑/build/lepao/LePaoToken/LePaoToken
+3894 INFO: Converting EXE to target arch (arm64)
+4180 INFO: Removing signature(s) from EXE
+4207 INFO: Modifying Mach-O image UUID(s) in EXE
+4209 INFO: Appending PKG archive to EXE
+4210 INFO: Fixing EXE headers for code signing
+4217 INFO: Rewriting the executable's macOS SDK version (26.2.0) to match the SDK version of the Python library (12.1.0) in order to avoid inconsistent behavior and potential UI issues in the frozen application.
+4219 INFO: Re-signing the EXE
+4244 INFO: Building EXE from EXE-00.toc completed successfully.
+4247 INFO: checking COLLECT
+4247 INFO: Building COLLECT because COLLECT-00.toc is non existent
+4247 INFO: Building COLLECT COLLECT-00.toc
+6328 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+6332 INFO: checking BUNDLE
+6332 INFO: Building BUNDLE because BUNDLE-00.toc is non existent
+6332 INFO: Building BUNDLE BUNDLE-00.toc
+8032 INFO: Signing the BUNDLE...
+8047 WARNING: Error while signing the bundle: codesign command (['/usr/bin/codesign', '-s', '-', '--force', '--all-architectures', '--timestamp', '--deep', '/Users/xi/Documents/校园乐跑/dist/LePaoToken.app']) failed with error code 1!
+output: /Users/xi/Documents/校园乐跑/dist/LePaoToken.app: replacing existing signature
+/Users/xi/Documents/校园乐跑/dist/LePaoToken.app: resource fork, Finder information, or similar detritus not allowed
+
+8047 WARNING: You will need to sign the bundle manually!
+8047 INFO: Building BUNDLE BUNDLE-00.toc completed successfully.
+8050 INFO: Build complete! The results are available in: /Users/xi/Documents/校园乐跑/dist

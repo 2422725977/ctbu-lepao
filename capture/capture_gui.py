@@ -53,6 +53,54 @@ for p in [os.path.join(_BASE, "mitmdump"),                      # PyInstaller �
         MITMDUMP = p
         break
 
+# 服务器地址持久化（GUI 里填过一次即可）
+try:
+    with open("config.json", encoding="utf-8") as _f:
+        SERVER_URL = json.load(_f).get("server") or SERVER_URL
+except (OSError, ValueError):
+    pass
+
+
+# ---------- 系统代理自动化（RunForge 登录器同款体验；argv 全字面量） ----------
+_PROXY_SERVICES = ("Wi-Fi", "Ethernet", "USB 10/100/1000 LAN", "Thunderbolt Ethernet")
+
+
+def proxy_apply():
+    """开启系统代理指向本机 8888"""
+    try:
+        if sys.platform == "win32":
+            subprocess.run(["reg", "add", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings",
+                            "/v", "ProxyServer", "/t", "REG_SZ", "/d", "127.0.0.1:8888", "/f"],
+                           capture_output=True, timeout=10)
+            subprocess.run(["reg", "add", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings",
+                            "/v", "ProxyEnable", "/t", "REG_DWORD", "/d", "1", "/f"],
+                           capture_output=True, timeout=10)
+        elif sys.platform == "darwin":
+            for svc in _PROXY_SERVICES:
+                subprocess.run(["networksetup", "-setwebproxy", svc, "127.0.0.1", "8888"],
+                               capture_output=True, timeout=10)
+                subprocess.run(["networksetup", "-setsecurewebproxy", svc, "127.0.0.1", "8888"],
+                               capture_output=True, timeout=10)
+    except Exception:
+        pass
+
+
+def proxy_restore():
+    """关闭系统代理（对齐 RunForge 退出行为；如原用其他代理请重新开启）"""
+    try:
+        if sys.platform == "win32":
+            subprocess.run(["reg", "add", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings",
+                            "/v", "ProxyEnable", "/t", "REG_DWORD", "/d", "0", "/f"],
+                           capture_output=True, timeout=10)
+        elif sys.platform == "darwin":
+            for svc in _PROXY_SERVICES:
+                subprocess.run(["networksetup", "-setwebproxystate", svc, "off"],
+                               capture_output=True, timeout=10)
+                subprocess.run(["networksetup", "-setsecurewebproxystate", svc, "off"],
+                               capture_output=True, timeout=10)
+    except Exception:
+        pass
+
 
 class CaptureApp:
     def __init__(self):
@@ -124,6 +172,8 @@ class CaptureApp:
             [MITMDUMP, "-p", str(PROXY_PORT), "-s", ADDON_FILE,
              "--set", "confdir=~/.mitmproxy", "--ssl-insecure", "-q"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        proxy_apply()
+        self._log("系统代理已指向 127.0.0.1:8888（退出自动关闭）")
         self._set_status("⏳ 代理已启动 — 请在企业微信中打开智慧体育小程序")
         threading.Thread(target=self._wait_for_token, args=(server, student), daemon=True).start()
 
@@ -176,6 +226,7 @@ class CaptureApp:
             try: self.proxy_proc.terminate(); self.proxy_proc.wait(timeout=5)
             except Exception: pass
             self.proxy_proc = None
+        proxy_restore()
 
     def run(self):
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)

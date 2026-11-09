@@ -1,0 +1,124 @@
+40 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+42 INFO: PyInstaller: 6.22.3, contrib hooks: 2026.9
+42 INFO: Python: 3.14.6 (conda)
+51 INFO: Platform: macOS-27.2-arm64-arm-64bit-Mach-O
+51 INFO: Python environment: /Users/xi/Documents/校园乐跑/venv_capture
+51 INFO: wrote /Users/xi/Documents/校园乐跑/mitmdump.spec
+54 INFO: Module search paths (PYTHONPATH):
+['/opt/anaconda3/lib/python314.zip',
+ '/opt/anaconda3/lib/python3.14',
+ '/opt/anaconda3/lib/python3.14/lib-dynload',
+ '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages',
+ '/Users/xi/Documents/校园乐跑']
+31 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+165 INFO: checking Analysis
+166 INFO: Building Analysis because Analysis-00.toc is non existent
+166 INFO: Looking for Python shared library...
+166 INFO: Using Python shared library: /opt/anaconda3/lib/libpython3.14.dylib
+166 INFO: Running Analysis Analysis-00.toc
+166 INFO: Target bytecode optimization level: 0
+166 INFO: Initializing module dependency graph...
+167 INFO: Initializing module graph hook caches...
+171 INFO: Analyzing modules for base_library.zip ...
+38 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+26 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+27 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+611 INFO: Processing standard module hook 'hook-math.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+1025 INFO: Processing standard module hook 'hook-encodings.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+28 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+1184 INFO: Processing standard module hook 'hook-pickle.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+1308 INFO: Processing standard module hook 'hook-difflib.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+1316 INFO: Processing standard module hook 'hook-heapq.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+3019 INFO: Caching module dependency graph...
+3063 INFO: Analyzing /Users/xi/Documents/校园乐跑/_mitmdump_entry.py
+3071 INFO: Processing standard module hook 'hook-mitmproxy.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/mitmproxy/utils/pyinstaller'
+3192 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+3275 INFO: Processing standard module hook 'hook-xml.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+3532 INFO: Processing standard module hook 'hook-sysconfig.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+3541 INFO: Processing standard module hook 'hook-_osx_support.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+3544 INFO: Processing standard module hook 'hook-_ctypes.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+3935 INFO: Processing standard module hook 'hook-platform.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+4038 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+4039 INFO: SetuptoolsInfo: initializing cached setuptools info...
+95 WARNING: Assuming this is not an Anaconda environment or an additional venv/pipenv/... environment manager is being used on top, because the conda-meta folder /Users/xi/Documents/校园乐跑/venv_capture/conda-meta does not exist.
+4392 INFO: Processing standard module hook 'hook-cryptography.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/mitmproxy/utils/pyinstaller'
+4643 INFO: Processing standard module hook 'hook-bcrypt.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+4665 INFO: Processing standard module hook 'hook-mitmproxy_rs.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/mitmproxy_rs/_pyinstaller'
+4698 INFO: Processing standard module hook 'hook-ruamel.yaml.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+5534 INFO: Processing standard module hook 'hook-jinja2.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+5977 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+5977 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.backports'!
+5981 INFO: Processing standard module hook 'hook-setuptools.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+5989 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+6006 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+6006 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco'!
+6013 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+6013 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+6098 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+6280 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+6281 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+6651 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+6651 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+7037 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+7038 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+7332 INFO: Processing standard module hook 'hook-wcwidth.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+7940 INFO: Processing standard module hook 'hook-webbrowser.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+8471 INFO: Processing pre-safe-import-module hook 'hook-gi.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+8765 INFO: Processing standard module hook 'hook-certifi.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+9386 INFO: Processing standard module hook 'hook-xml.dom.domreg.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+9569 INFO: Processing standard module hook 'hook-publicsuffix2.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+9999 INFO: Processing standard module hook 'hook-mitmproxy.addons.onboardingapp.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/mitmproxy/utils/pyinstaller'
+11198 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+11198 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+11213 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks'
+11225 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/pre_safe_import_module'
+11225 INFO: Setuptools: 'zipp' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.zipp'!
+11730 INFO: Processing standard module hook 'hook-Crypto.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+11999 INFO: Processing standard module hook 'hook-pycparser.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+12474 INFO: Processing standard module hook 'hook-mitmproxy.tools.web.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/mitmproxy/utils/pyinstaller'
+12802 INFO: Processing standard module hook 'hook-argon2.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+12816 INFO: Processing module hooks (post-graph stage)...
+12816 INFO: Processing standard module hook 'hook-mitmproxy_macos.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/mitmproxy_rs/_pyinstaller'
+12819 WARNING: Hidden import "pycparser.lextab" not found!
+12819 WARNING: Hidden import "pycparser.yacctab" not found!
+12863 INFO: Performing binary vs. data reclassification (95 entries)
+15326 INFO: Looking for ctypes DLLs
+15338 WARNING: Library msvcrt required via ctypes not found
+15352 INFO: Analyzing run-time hooks ...
+15355 INFO: Including run-time hook 'pyi_rth_inspect.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/rthooks'
+15357 INFO: Including run-time hook 'pyi_rth_cryptography_openssl.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/_pyinstaller_hooks_contrib/rthooks'
+15358 INFO: Including run-time hook 'pyi_rth_setuptools.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/rthooks'
+15358 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/rthooks'
+15359 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from '/Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/hooks/rthooks'
+15369 INFO: Creating base_library.zip...
+15377 INFO: Looking for dynamic libraries
+15643 INFO: Warnings written to /Users/xi/Documents/校园乐跑/build/mitm/mitmdump/warn-mitmdump.txt
+15674 INFO: Graph cross-reference written to /Users/xi/Documents/校园乐跑/build/mitm/mitmdump/xref-mitmdump.html
+15759 INFO: checking PYZ
+15759 INFO: Building PYZ because PYZ-00.toc is non existent
+15759 INFO: Building PYZ (ZlibArchive) /Users/xi/Documents/校园乐跑/build/mitm/mitmdump/PYZ-00.pyz
+16419 INFO: Building PYZ (ZlibArchive) /Users/xi/Documents/校园乐跑/build/mitm/mitmdump/PYZ-00.pyz completed successfully.
+16428 INFO: EXE target arch: arm64
+16428 INFO: Code signing identity: None
+16428 INFO: checking PKG
+16428 INFO: Building PKG because PKG-00.toc is non existent
+16428 INFO: Building PKG (CArchive) mitmdump.pkg
+16440 INFO: Building PKG (CArchive) mitmdump.pkg completed successfully.
+16441 INFO: Bootloader /Users/xi/Documents/校园乐跑/venv_capture/lib/python3.14/site-packages/PyInstaller/bootloader/Darwin-64bit/run
+16441 INFO: checking EXE
+16441 INFO: Building EXE because EXE-00.toc is non existent
+16441 INFO: Building EXE from EXE-00.toc
+16441 INFO: Copying bootloader EXE to /Users/xi/Documents/校园乐跑/build/mitm/mitmdump/mitmdump
+16441 INFO: Converting EXE to target arch (arm64)
+16453 INFO: Removing signature(s) from EXE
+16468 INFO: Modifying Mach-O image UUID(s) in EXE
+16475 INFO: Appending PKG archive to EXE
+16478 INFO: Fixing EXE headers for code signing
+16482 INFO: Rewriting the executable's macOS SDK version (26.2.0) to match the SDK version of the Python library (12.1.0) in order to avoid inconsistent behavior and potential UI issues in the frozen application.
+16483 INFO: Re-signing the EXE
+16512 INFO: Building EXE from EXE-00.toc completed successfully.
+16514 INFO: checking COLLECT
+16514 INFO: Building COLLECT because COLLECT-00.toc is non existent
+16514 INFO: Building COLLECT COLLECT-00.toc
+19191 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+19193 INFO: Build complete! The results are available in: /Users/xi/Documents/校园乐跑/dist
