@@ -1,1 +1,0 @@
-../../Resources/mitmproxy_rs/__init__.pyi

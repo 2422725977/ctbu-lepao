@@ -1,1 +1,0 @@
-../Resources/token_addon.py

@@ -1,1 +1,0 @@
-../../Resources/mitmproxy_rs/contentviews.pyi
