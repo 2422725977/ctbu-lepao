@@ -1,0 +1,1 @@
+../../Resources/wcwidth/_wcwidth_c.pyi

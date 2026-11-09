@@ -22,30 +22,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller mitmproxy pycryptodome requests
 
-      - name: Generate mitmdump entry script
-        shell: pwsh
-        run: |
-          @"
-          from mitmproxy.tools.main import mitmdump
-          mitmdump()
-          "@ | Set-Content -Path _mitmdump_entry.py -Encoding utf8
-
-      - name: Build mitmdump.exe
-        run: pyinstaller --onefile --console --name mitmdump --hiddenimport Crypto.Cipher.AES --hiddenimport Crypto.Util.Padding _mitmdump_entry.py
-
-      - name: Build LePaoToken.exe
-        run: pyinstaller --windowed --name LePaoToken --add-data "capture/token_addon.py;." capture/capture_gui.py
-
-      - name: Package zip
-        shell: pwsh
-        run: |
-          Copy-Item dist\mitmdump.exe dist\LePaoToken\
-          Compress-Archive -Path dist\LePaoToken -DestinationPath LePaoToken-win64.zip
-          Get-Item LePaoToken-win64.zip | Select-Object Name, Length
+      - name: Build LePaoToken.exe (单文件，内置 mitmproxy)
+        run: pyinstaller --onefile --windowed --name LePaoToken capture/capture_gui.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: LePaoToken-win64
-          path: LePaoToken-win64.zip
+          path: dist\LePaoToken.exe
           if-no-files-found: error

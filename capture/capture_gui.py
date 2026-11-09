@@ -5,8 +5,11 @@
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
-import subprocess, threading, json, os, sys, time, shutil, re, tempfile
+import subprocess, threading, json, os, sys, time, shutil, re, tempfile, asyncio
 import urllib.request
+from mitmproxy import options
+from mitmproxy.tools.dump import DumpMaster
+import token_addon as _addon_mod
 
 # ---------- 安全校验 ----------
 def _safe_sn(sn):
@@ -42,16 +45,50 @@ for arg in sys.argv:
     if arg.startswith("--server="):
         SERVER_URL = arg.split("=", 1)[1]
 
-MITMDUMP = None
-for p in [os.path.join(_BASE, "mitmdump"),                      # PyInstaller 打包: 与主程序同目录
-          os.path.join(_BASE, "mitmdump.exe"),
-          "/tmp/cuavenv/bin/mitmdump",
-          os.path.join(sys.prefix, "bin", "mitmdump"),
-          os.path.join(sys.prefix, "Scripts", "mitmdump.exe"),
-          "mitmdump"]:
-    if shutil.which(p):
-        MITMDUMP = p
-        break
+MITMDUMP = None  # 已改为进程内 mitmproxy，不再依赖外部 mitmdump（单文件打包的关键）
+
+# ---------- 进程内 mitmproxy（对照 RunForge main.pyc 的 DumpMaster 方案） ----------
+_PROXY = {"master": None, "loop": None, "thread": None}
+
+
+def proxy_start():
+    """在当前进程内启动 mitmproxy DumpMaster（后台线程）"""
+    if _PROXY["thread"] and _PROXY["thread"].is_alive():
+        return
+
+    def _run():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        async def _amain():
+            opts = options.Options(listen_host="127.0.0.1", listen_port=PROXY_PORT,
+                                   ssl_insecure=True, confdir="~/.mitmproxy")
+            master = DumpMaster(opts, with_termlog=False, with_dumper=False)
+            master.addons.add(*_addon_mod.addons)
+            _PROXY["master"] = master
+            _PROXY["loop"] = loop
+            await master.run()
+
+        try:
+            loop.run_until_complete(_amain())
+        finally:
+            loop.close()
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    _PROXY["thread"] = t
+    time.sleep(1.5)  # 等待监听就绪
+
+
+def proxy_stop():
+    m, loop = _PROXY["master"], _PROXY["loop"]
+    if m and loop:
+        try:
+            loop.call_soon_threadsafe(m.shutdown)
+        except Exception:
+            pass
+    _PROXY["master"] = None
+    _PROXY["loop"] = None
 
 # 服务器地址持久化（GUI 里填过一次即可）
 try:
@@ -158,20 +195,18 @@ class CaptureApp:
         self.start_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
         self._log("=== 开始抓取流程 ===")
-        if not MITMDUMP:
-            self._log("❌ 未找到 mitmdump"); self.running = False
-            self.start_btn.configure(state="normal"); return
         student = self.student_var.get().strip()
         if not student:
             self._log("❌ 请填写学号"); self.running = False; return
         server = self.server_var.get().rstrip("/")
         try: os.remove(TOKEN_FILE)
         except FileNotFoundError: pass
-        self._log(f"启动代理 (port {PROXY_PORT})…")
-        self.proxy_proc = subprocess.Popen(
-            [MITMDUMP, "-p", str(PROXY_PORT), "-s", ADDON_FILE,
-             "--set", "confdir=~/.mitmproxy", "--ssl-insecure", "-q"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self._log(f"启动内置代理 (port {PROXY_PORT})…")
+        try:
+            proxy_start()
+        except Exception as e:
+            self._log(f"❌ 代理启动失败: {e}"); self.running = False
+            self.start_btn.configure(state="normal"); return
         proxy_apply()
         self._log("系统代理已指向 127.0.0.1:8888（退出自动关闭）")
         self._set_status("⏳ 代理已启动 — 请在企业微信中打开智慧体育小程序")
@@ -222,11 +257,9 @@ class CaptureApp:
         self.start_btn.configure(state="normal"); self.stop_btn.configure(state="disabled")
 
     def stop_proxy(self):
-        if self.proxy_proc:
-            try: self.proxy_proc.terminate(); self.proxy_proc.wait(timeout=5)
-            except Exception: pass
-            self.proxy_proc = None
+        proxy_stop()
         proxy_restore()
+        self.proxy_proc = None
 
     def run(self):
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
