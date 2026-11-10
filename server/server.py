@@ -292,7 +292,7 @@ def scheduler_loop():
             now_min = now.hour * 60 + now.minute
         except Exception as exc:
             log("调度器异常: %s" % exc)
-            time.sleep(60)
+            time.sleep(600)
             continue
 
         for acc in data.get("accounts", []):
@@ -339,8 +339,8 @@ def scheduler_loop():
                 log(f"[{sn}] ❌ 异常: {exc}")
             set_state(sn, st)
 
-        # 每 60 秒检查一轮
-        time.sleep(60)
+        # 每 10 分钟检查一轮
+        time.sleep(600)
 
 
 def start_scheduler():

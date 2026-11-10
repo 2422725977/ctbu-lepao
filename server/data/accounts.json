@@ -20,12 +20,13 @@
     "source": "mitm-capture"
    },
    "state": {
-    "date": "2026-11-09",
+    "date": "2026-11-10",
     "done": true,
-    "attempts": 1,
-    "last_attempt_min": 413,
-    "last_run": "2026-11-09 06:53",
-    "last_exit": 0
+    "attempts": 3,
+    "last_attempt_min": 787,
+    "last_error": "[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1011)",
+    "last_run": "2026-11-10 18:23",
+    "last_exit": 3
    }
   }
  ]
