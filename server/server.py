@@ -219,6 +219,22 @@ def api_toggle():
     return jsonify({"error": "account not found"}), 404
 
 
+@app.route("/api/account/toggle_all", methods=["POST"])
+def api_toggle_all():
+    """批量启用/禁用全部账号"""
+    body = request.get_json(silent=True) or {}
+    enabled = bool(body.get("enabled", True))
+    data = load_accounts()
+    changed = 0
+    for acc in data.get("accounts", []):
+        if acc.get("enabled", True) != enabled:
+            acc["enabled"] = enabled
+            changed += 1
+    if changed:
+        save_accounts(data)
+    return jsonify({"ok": True, "changed": changed})
+
+
 @app.route("/api/account/delete", methods=["POST"])
 def api_delete():
     """删除账号"""
@@ -247,15 +263,23 @@ def dashboard():
             continue
         st = get_state(acc, today)
         _, tgt = pick_window(sn)
+        issued = acc.get("auth", {}).get("issued_at", "")
+        try:
+            token_age = (datetime.datetime.now() - datetime.datetime.fromisoformat(issued)).days
+        except ValueError:
+            token_age = -1
         rows.append({
             "student_num": sn, "alias": acc.get("alias", sn),
             "enabled": acc.get("enabled", True),
             "token_prefix": acc.get("auth", {}).get("token", "")[:8],
-            "token_issued": acc.get("auth", {}).get("issued_at", ""),
+            "token_issued": issued,
+            "token_age": token_age,
             "target": "%02d:%02d" % divmod(tgt, 60),
             "done_today": st.get("done", False),
             "last_exit": st.get("last_exit"),
             "last_run": st.get("last_run", ""),
+            "attempts": st.get("attempts", 0),
+            "last_error": st.get("last_error", ""),
         })
     enabled_count = sum(1 for a in rows if a["enabled"])
     done_count = sum(1 for a in rows if a["done_today"])
