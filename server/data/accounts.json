@@ -20,13 +20,11 @@
     "source": "mitm-capture"
    },
    "state": {
-    "date": "2026-11-10",
-    "done": true,
+    "date": "2026-11-11",
+    "done": false,
     "attempts": 3,
-    "last_attempt_min": 787,
-    "last_error": "[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1011)",
-    "last_run": "2026-11-10 18:23",
-    "last_exit": 3
+    "last_attempt_min": 1043,
+    "last_error": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: EE certificate key too weak (_ssl.c:1011)"
    }
   }
  ]
