@@ -197,8 +197,9 @@ def _mail_html(alias, summary, progress):
 
 
 def send_run_mail(sn, acc, summary):
-    """跑完一次发一封进度邮件（未配置 SMTP 凭据时静默跳过）"""
-    if not (MAIL_USER and MAIL_PASS):
+    """跑完一次发一封进度邮件（账号邮箱优先，全局 MAIL_TO 兜底）"""
+    to = str(acc.get("email") or "").strip() or MAIL_TO
+    if not (MAIL_USER and MAIL_PASS and to):
         return
     try:
         import smtplib
@@ -212,12 +213,12 @@ def send_run_mail(sn, acc, summary):
         msg["Subject"] = ("=?utf-8?b?%s?=" % base64.b64encode(
             ("乐跑完成 %skm · 学期 %s/40" % (dist, total)).encode("utf-8")).decode("ascii"))
         msg["From"] = MAIL_USER
-        msg["To"] = MAIL_TO
+        msg["To"] = to
         msg.attach(MIMEText(html, "html", "utf-8"))
         with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as s:
             s.login(MAIL_USER, MAIL_PASS)
             s.send_message(msg)
-        log("[%s] 进度邮件已发送 -> %s" % (sn, MAIL_TO))
+        log("[%s] 进度邮件已发送 -> %s" % (sn, to))
     except Exception as exc:
         log("[%s] 邮件发送失败: %s" % (sn, exc))
 
@@ -335,6 +336,26 @@ def api_toggle_all():
     return jsonify({"ok": True, "changed": changed})
 
 
+@app.route("/api/account/email", methods=["POST"])
+def api_account_email():
+    """设置账号的收件邮箱（空串=清除，回落到全局 MAIL_TO）"""
+    body = request.get_json(silent=True) or {}
+    try:
+        sn = validate_sn(body.get("student_num"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    email = str(body.get("email") or "").strip()
+    if email and not re.match(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email):
+        return jsonify({"error": "邮箱格式不合法"}), 400
+    data = load_accounts()
+    for acc in data.get("accounts", []):
+        if acc.get("student_num") == sn:
+            acc["email"] = email
+            save_accounts(data)
+            return jsonify({"ok": True, "email": email or "（已清除，使用全局默认）"})
+    return jsonify({"error": "account not found"}), 404
+
+
 @app.route("/api/account/delete", methods=["POST"])
 def api_delete():
     """删除账号"""
@@ -370,6 +391,7 @@ def dashboard():
             token_age = -1
         rows.append({
             "student_num": sn, "alias": acc.get("alias", sn),
+            "email": acc.get("email", ""),
             "enabled": acc.get("enabled", True),
             "token_prefix": acc.get("auth", {}).get("token", "")[:8],
             "token_issued": issued,

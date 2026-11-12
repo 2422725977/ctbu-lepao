@@ -168,7 +168,7 @@ button:focus-visible{outline:2px solid #fff;outline-offset:2px}
     <div class="tblwrap">
       <table>
         <thead>
-          <tr><th>学号</th><th>姓名</th><th>Token</th><th>今日目标</th><th>状态</th><th>上次运行</th><th style="text-align:right">操作</th></tr>
+          <tr><th>学号</th><th>姓名</th><th>Token</th><th>今日目标</th><th>状态</th><th>上次运行</th><th>进度邮箱</th><th style="text-align:right">操作</th></tr>
         </thead>
         <tbody>
         {% for a in accounts %}
@@ -194,6 +194,11 @@ button:focus-visible{outline:2px solid #fff;outline-offset:2px}
             <td class="dim">{% if a.last_run %}{{ a.last_run }}{% if a.attempts %} · {{ a.attempts }}次{% endif %}
                 {% if a.last_error %} <span class="err" title="{{ a.last_error }}">⚠</span>{% endif %}
                 {% else %}—{% endif %}</td>
+            <td>
+              <span class="mono" style="font-size:11.5px" title="进度邮件收件地址；留空发到全局默认">{{ (a.email or '全局默认')[:22] }}</span>
+              <button style="min-height:0;padding:2px 8px;font-size:11.5px"
+                      onclick="editEmail('{{ a.student_num }}', '{{ a.email or '' }}')">设置</button>
+            </td>
             <td style="text-align:right;white-space:nowrap">
               <button class="btn-go" onclick="act('/api/submit/{{ a.student_num }}')">提交</button>
               <button onclick="act('/api/account/toggle', {student_num: '{{ a.student_num }}'})">{{ '禁用' if a.enabled else '启用' }}</button>
@@ -201,7 +206,7 @@ button:focus-visible{outline:2px solid #fff;outline-offset:2px}
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="7" class="empty">暂无账号 — 用登录器抓取 token 后自动建档</td></tr>
+          <tr><td colspan="8" class="empty">暂无账号 — 用登录器抓取 token 后自动建档</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -248,6 +253,11 @@ function act(url, body) {
     if (j.error) alert(j.error);
     location.reload();
   });
+}
+function editEmail(sn, cur) {
+  const e = prompt("进度邮件收件邮箱（留空 = 使用全局默认收件人）", cur || "");
+  if (e === null) return;
+  act("/api/account/email", {student_num: sn, email: e.trim()});
 }
 </script>
 </body></html>
