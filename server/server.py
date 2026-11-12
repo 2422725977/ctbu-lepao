@@ -158,9 +158,9 @@ def _progress_info(acc):
 
 
 def _mail_html(alias, summary, progress):
-    dist = summary.get("distance", "?")
+    dist = float(summary.get("distance") or 0)
     used = int(summary.get("used_time") or 0)
-    pace = "%d'%02d\"" % (used // 60 // int(dist), int(used / dist) % 60) if dist and used else "—"
+    pace = ("%d'%02d\"" % (used // 60 // int(dist), int(used / dist) % 60)) if dist and used else "—"
     rid = summary.get("record_id") or "—"
     status = summary.get("record_failed_reason") or ("status " + str(summary.get("record_status")))
     ok = "自动确认有效" in str(status)
