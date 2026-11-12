@@ -20,6 +20,10 @@ services:
       - LEPAO_SCHEDULER=1
       # 抓号上传口令（登录器内置同款，防止局域网内他人乱塞 token）
       - LEPAO_UPLOAD_KEY=05a0a68a53f2128c
+      # 邮件通知：填 QQ 邮箱 SMTP 授权码后启用（收件人留空=发给自己）
+      - LEPAO_SMTP_USER=
+      - LEPAO_SMTP_PASS=
+      - LEPAO_MAIL_TO=
       # 企业微信通知不走容器内代码（安全约束：容器零外呼）。
       # 由宿主机 cron 监控容器日志并转发，示例（crontab -e 添加一行）：
       # */5 * * * * docker logs ctbu-lepao --since 5m 2>&1 | grep -E "成功|TOKEN_DEAD" | while read l; do curl -s "你的机器人webhook地址" -H 'Content-Type: application/json' -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"$l\"}}" > /dev/null; done

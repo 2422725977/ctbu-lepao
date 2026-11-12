@@ -6,7 +6,7 @@ Docker 容器内运行，提供：
   - Dashboard：简单的 HTML 状态页
   - 后台调度线程：每个账号在随机窗口时间自动提交
 """
-import os, sys, re, json, time, socket, ipaddress, hashlib, datetime, threading
+import os, sys, re, json, time, base64, socket, ipaddress, hashlib, datetime, threading
 import urllib.parse, urllib.request
 from flask import Flask, request, jsonify, render_template
 
@@ -40,6 +40,13 @@ WINDOWS = [
 MAX_RETRY_PER_DAY = 3    # 每账号每日最多尝试次数（硬失败）
 RETRY_COOLDOWN_MIN = 30  # 失败后冷却分钟数（防风暴、防机器节律）
 SSL_MAX_RETRY_PER_DAY = 40  # SSL/证书类失败放宽到全天（平台侧事故自愈后自动接上）
+
+# 邮件通知：跑完一次发一封进度邮件（凭据留空则不发送）
+SMTP_HOST = "smtp.qq.com"
+SMTP_PORT = 465
+MAIL_USER = os.environ.get("LEPAO_SMTP_USER", "").strip()
+MAIL_PASS = os.environ.get("LEPAO_SMTP_PASS", "").strip()
+MAIL_TO = os.environ.get("LEPAO_MAIL_TO", "").strip() or MAIL_USER
 
 # 传给 driver 的全局配置（api_host + 策略默认值；账号级策略在 accounts.json 覆盖）
 DEFAULT_CFG = {
@@ -125,6 +132,96 @@ def _brief(summary):
     return str(summary)[:120]
 
 
+# ---------- 邮件通知 ----------
+def _progress_info(acc):
+    """学期有效次数 + 本月有效天数（查询失败返回 None）"""
+    try:
+        client = Account(acc, DEFAULT_CFG).make_client()
+        bcfg = client.before_run()
+        term_id = str(bcfg.get("term_id") or "0")
+        recs = []
+        for page in (1, 2, 3, 4):
+            r = client.post("/v3/api.php/WpRun/getTermRunRecord",
+                            {"term_id": term_id, "page": page})
+            lst = r.get("list") or [] if isinstance(r, dict) else []
+            if not lst:
+                break
+            recs.extend(lst)
+        valid = [x for x in recs if str(x.get("record_status")) == "1"]
+        month = sum(1 for x in valid
+                    if datetime.datetime.fromtimestamp(int(x.get("start_time") or 0)).month
+                    == datetime.date.today().month)
+        return len(valid), month
+    except Exception as exc:
+        log("_progress_info 失败: %s" % exc)
+        return None
+
+
+def _mail_html(alias, summary, progress):
+    dist = summary.get("distance", "?")
+    used = int(summary.get("used_time") or 0)
+    pace = "%d'%02d\"" % (used // 60 // int(dist), int(used / dist) % 60) if dist and used else "—"
+    rid = summary.get("record_id") or "—"
+    status = summary.get("record_failed_reason") or ("status " + str(summary.get("record_status")))
+    ok = "自动确认有效" in str(status)
+    st_color = "#22C55E" if ok else "#F59E0B"
+    if progress:
+        total, month = progress
+        pct = min(100, round(total / 40 * 100))
+        bar = ('<div style="background:#272F42;border-radius:999px;height:10px;overflow:hidden">'
+               '<div style="width:%d%%;height:10px;background:linear-gradient(90deg,#22C55E,#86EFAC)"></div></div>'
+               '<p style="margin:6px 0 0;font:13px Menlo,monospace;color:#94A3B8">'
+               '学期进度 %d / 40（%d%%）· 本月 %d 天 · 距目标 %d 次</p>'
+               % (pct, total, pct, month, max(0, 40 - total)))
+    else:
+        bar = '<p style="color:#94A3B8;font:13px Menlo,monospace">学期进度暂不可查询</p>'
+    row = ('<tr><td style="padding:8px 12px;color:#94A3B8">%s</td>'
+           '<td style="padding:8px 12px;font:600 14px Menlo,monospace;color:#F8FAFC">%s</td></tr>')
+    return ("""<div style="background:#0F172A;padding:28px;font-family:-apple-system,'PingFang SC',sans-serif">
+<div style="max-width:520px;margin:0 auto">
+<h2 style="color:#F8FAFC;margin:0 0 4px">🏃 乐跑完成</h2>
+<p style="color:#94A3B8;font:13px Menlo,monospace;margin:0 0 18px">%s · %s</p>
+<div style="background:#1B2336;border:1px solid #334155;border-radius:12px;padding:18px">
+<table style="border-collapse:collapse;width:100%%">%s%s%s%s</table>
+<p style="margin:14px 0 0;color:%s;font:600 13px sans-serif">%s</p>
+</div>
+<div style="margin-top:16px">%s</div>
+<p style="color:#64748B;font:11px Menlo,monospace;margin-top:14px">由乐跑控制台自动发送</p>
+</div></div>"""
+            % (alias, datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+               row % ("记录号", rid),
+               row % ("距离", "%s km" % dist),
+               row % ("用时", ("%d'%02d\"" % (used // 60, used % 60)) if used else "—"),
+               row % ("配速", pace),
+               st_color, status, bar))
+
+
+def send_run_mail(sn, acc, summary):
+    """跑完一次发一封进度邮件（未配置 SMTP 凭据时静默跳过）"""
+    if not (MAIL_USER and MAIL_PASS):
+        return
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        progress = _progress_info(acc)
+        html = _mail_html(acc.get("alias", sn), summary or {}, progress)
+        msg = MIMEMultipart("alternative")
+        dist = (summary or {}).get("distance", "?")
+        total = progress[0] if progress else "?"
+        msg["Subject"] = ("=?utf-8?b?%s?=" % base64.b64encode(
+            ("乐跑完成 %skm · 学期 %s/40" % (dist, total)).encode("utf-8")).decode("ascii"))
+        msg["From"] = MAIL_USER
+        msg["To"] = MAIL_TO
+        msg.attach(MIMEText(html, "html", "utf-8"))
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as s:
+            s.login(MAIL_USER, MAIL_PASS)
+            s.send_message(msg)
+        log("[%s] 进度邮件已发送 -> %s" % (sn, MAIL_TO))
+    except Exception as exc:
+        log("[%s] 邮件发送失败: %s" % (sn, exc))
+
+
 def validate_sn(sn):
     """学号白名单校验：仅字母数字下划线短横线，杜绝路径穿越字符"""
     sn = str(sn or "").strip()
@@ -200,6 +297,8 @@ def api_submit(student_num):
     if code in (0, 3):
         st["done"] = True
     set_state(sn, st)
+    if code == 0:
+        send_run_mail(sn, acc, summary)
     return jsonify({"exit_code": code, "summary": summary})
 
 
@@ -360,6 +459,7 @@ def scheduler_loop():
                 if code == 0:
                     st["done"] = True
                     log(f"[{sn}] ✅ 成功! {_brief(summary)}")
+                    send_run_mail(sn, acc, summary)
                 elif code == 2:
                     st["attempts"] = MAX_RETRY_PER_DAY  # token 失效，今日不再重试
                     log(f"[{sn}] TOKEN_DEAD — 需重新抓号")
