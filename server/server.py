@@ -37,8 +37,9 @@ WINDOWS = [
     ("afternoon", 15,  0, 17, 30),
     ("evening",   18,  0, 22,  0),
 ]
-MAX_RETRY_PER_DAY = 3    # 每账号每日最多尝试次数
+MAX_RETRY_PER_DAY = 3    # 每账号每日最多尝试次数（硬失败）
 RETRY_COOLDOWN_MIN = 30  # 失败后冷却分钟数（防风暴、防机器节律）
+SSL_MAX_RETRY_PER_DAY = 40  # SSL/证书类失败放宽到全天（平台侧事故自愈后自动接上）
 
 # 传给 driver 的全局配置（api_host + 策略默认值；账号级策略在 accounts.json 覆盖）
 DEFAULT_CFG = {
@@ -305,6 +306,13 @@ def pick_window(sn):
     return win_name, lo + _h(datetime.date.today(), win_name, sn) % span
 
 
+def is_ssl_error(err_text):
+    """SSL/证书类失败：多为平台侧证书事故，放宽为全天耐心重试"""
+    t = str(err_text or "").lower()
+    return ("certificate" in t or "ssl" in t
+            or "eof occurred in violation" in t)
+
+
 def scheduler_loop():
     """后台线程：每账号每日一个确定性随机窗口时刻提交，失败冷却重试"""
     log("多账号调度器启动 windows=%s" % [w[0] for w in WINDOWS])
@@ -328,8 +336,10 @@ def scheduler_loop():
                 log("跳过异常条目: %s" % exc)
                 continue
             st = get_state(acc, today)
-            if st["done"] or st["attempts"] >= MAX_RETRY_PER_DAY:
-                continue
+            if (st["done"] or now_min >= 22 * 60
+                    or st["attempts"] >= MAX_RETRY_PER_DAY
+                    or st.get("ssl_attempts", 0) >= SSL_MAX_RETRY_PER_DAY):
+                continue  # 已完成 / 超出有效时段 / 硬失败次数耗尽 / SSL 宽限耗尽
 
             # 当日目标时刻（种子=日期+学号，确定性派生）
             win_name, tgt = pick_window(sn)
@@ -340,9 +350,9 @@ def scheduler_loop():
             if st["attempts"] > 0 and now_min - last_min < RETRY_COOLDOWN_MIN:
                 continue
 
-            st["attempts"] += 1
             st["last_attempt_min"] = now_min
-            log(f"[{sn}] {win_name} 窗口到点 {tgt_h:02d}:{tgt_m:02d}，第 {st['attempts']} 次尝试")
+            log(f"[{sn}] {win_name} 窗口到点 {tgt_h:02d}:{tgt_m:02d}，"
+                f"第 {st['attempts'] + 1} 次尝试")
             try:
                 summary, code = submit_account(acc, cfg=DEFAULT_CFG)
                 st["last_run"] = now.strftime("%Y-%m-%d %H:%M")
@@ -357,10 +367,16 @@ def scheduler_loop():
                     st["done"] = True
                     log(f"[{sn}] 当日额度已满，视为完成")
                 else:
+                    st["attempts"] += 1
                     log(f"[{sn}] ❌ 失败 exit={code} {_brief(summary)}")
             except Exception as exc:
                 st["last_error"] = str(exc)[:200]
-                log(f"[{sn}] ❌ 异常: {exc}")
+                if is_ssl_error(st["last_error"]):
+                    st["ssl_attempts"] = st.get("ssl_attempts", 0) + 1
+                    log(f"[{sn}] ⚠ SSL/证书类异常（不计入硬重试，全天放宽）: {st['last_error']}")
+                else:
+                    st["attempts"] += 1
+                    log(f"[{sn}] ❌ 异常: {st['last_error']}")
             set_state(sn, st)
 
         # 每 10 分钟检查一轮
